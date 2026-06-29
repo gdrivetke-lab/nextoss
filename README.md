@@ -223,7 +223,7 @@ nextoss/
 │   ├── database/seeds/         # Sample data seeding
 │   └── data/                   # NeDB database files (auto-created)
 │
-├── Index.html                   # Single-page frontend application
+├── index.html                   # Single-page frontend application
 ├── docker/                     # Docker & Nginx configuration
 ├── docs/                       # Architecture & API documentation
 ├── uploads/                    # File upload directory
