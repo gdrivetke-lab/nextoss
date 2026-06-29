@@ -30,7 +30,7 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use(express.static(path.join(__dirname, '../../')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../Index.html'));
+  res.sendFile(path.join(__dirname, '../../index.html'));
 });
 
 app.get('/api/health', (req, res) => {
