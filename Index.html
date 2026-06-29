@@ -1099,12 +1099,80 @@
         }
 
         @media (max-width: 768px) {
-            .rooms-panel { position: fixed; right: 72px; top: 0; bottom: 0; z-index: 20; width: 280px; transform: translateX(100%); }
+            .rooms-panel { position: fixed; right: 0; top: 0; bottom: 0; z-index: 25; width: 280px; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); border-radius: 0; border-right: 1px solid var(--border); }
             .rooms-panel.mobile-open { transform: translateX(0); }
             .sidebar { width: 60px; }
-            .chat-header { padding: 0 16px; }
-            .messages-area { padding: 16px; }
-            .chat-input-area { padding: 12px 16px 16px; }
+            .sidebar-icon { width: 44px; height: 44px; font-size: 16px; border-radius: 12px; }
+            .sidebar-icon.active::before { right: -10px; }
+            .sidebar-avatar-wrap { display: none; }
+            .chat-header { padding: 0 12px; gap: 8px; height: 56px; }
+            .chat-header-title { font-size: 14px; }
+            .chat-header-subtitle { font-size: 11px; }
+            .header-btn { width: 34px; height: 34px; font-size: 14px; }
+            .messages-area { padding: 12px; }
+            .message-bubble { max-width: 88%; }
+            .chat-input-area { padding: 8px 12px 12px; }
+            .input-wrapper { gap: 8px; }
+            .input-actions { gap: 2px; }
+            .input-action-btn { width: 36px; height: 36px; font-size: 15px; }
+            #messageInput { font-size: 14px; padding: 10px 12px; min-height: 42px; }
+            .send-btn { width: 42px; height: 42px; font-size: 16px; }
+            .members-panel { position: fixed; left: 0; top: 0; bottom: 0; z-index: 25; width: 260px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); border-radius: 0; border-left: 1px solid var(--border); }
+            .members-panel.mobile-open { transform: translateX(0); }
+            .members-panel:not(.collapsed) { width: 260px; }
+            .mobile-overlay { display: none; position: fixed; inset: 0; z-index: 24; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+            .mobile-overlay.visible { display: block; }
+            .login-card { width: 92%; max-width: 400px; padding: 32px 20px; }
+            .login-tabs { gap: 4px; }
+            .login-tab { padding: 8px 12px; font-size: 13px; }
+            .login-submit { padding: 12px; font-size: 14px; }
+            .voice-channel-bar { padding: 8px 12px; gap: 8px; font-size: 12px; flex-wrap: wrap; }
+            .voice-disconnect-btn { padding: 6px 14px; font-size: 12px; }
+            .volume-meter { width: 60px; }
+            .search-overlay { padding: 8px 12px; gap: 6px; }
+            .search-input { font-size: 13px; padding: 8px 12px; }
+            .emoji-picker { left: 8px; right: auto; width: calc(100% - 16px); max-width: 320px; }
+            .recording-bar { padding: 8px 12px; }
+            .context-menu { width: 200px; }
+            .settings-box { width: 95%; max-width: 420px; max-height: 92vh; border-radius: 16px; }
+            .settings-body { flex-direction: column; }
+            .settings-sidebar { width: 100%; border-left: none; border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; padding: 8px 12px; gap: 4px; }
+            .settings-sidebar::-webkit-scrollbar { height: 2px; }
+            .settings-tab { white-space: nowrap; flex-shrink: 0; }
+            .settings-content { padding: 16px; }
+            .voice-channel-panel { width: 95%; max-width: 420px; max-height: 92vh; }
+            .voice-user-list { max-height: 200px; }
+            .create-room-box { width: 95%; max-width: 400px; }
+            .dm-header { font-size: 14px; }
+            .dm-messages-area { padding: 12px; }
+            .dm-input-area { padding: 8px 12px 12px; }
+            .particle-overlay { display: none; }
+            .message-time { font-size: 10px; }
+            .message-reactions { gap: 2px; }
+            .reaction-btn { width: 28px; height: 28px; font-size: 13px; }
+            .toast { font-size: 13px; padding: 10px 16px; min-width: auto; max-width: 90%; }
+            .typing-indicator { font-size: 12px; }
+            .member-context-menu { width: 190px; left: 50% !important; transform: translateX(-50%) !important; }
+            #voiceChannelBar { padding: 6px 12px; }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar { width: 48px; }
+            .sidebar-icon { width: 36px; height: 36px; font-size: 14px; border-radius: 10px; }
+            .sidebar-icon.active::before { right: -8px; width: 2px; height: 18px; }
+            .rooms-panel { width: 240px; }
+            .chat-header { padding: 0 8px; }
+            .header-btn { width: 30px; height: 30px; font-size: 12px; }
+            .message-bubble { max-width: 92%; padding: 10px 14px; font-size: 13px; }
+            .messages-area { padding: 8px; }
+            .chat-input-area { padding: 6px 8px 10px; }
+            #messageInput { font-size: 13px; padding: 8px 10px; min-height: 38px; }
+            .input-action-btn { width: 32px; height: 32px; font-size: 13px; }
+            .send-btn { width: 38px; height: 38px; font-size: 14px; }
+            .login-logo span:first-child { font-size: 22px !important; }
+            .login-card { padding: 24px 16px; }
+            .login-field label { font-size: 13px; }
+            .login-input { padding: 10px 14px; font-size: 14px; }
         }
 
         .hover-lift {
@@ -1613,19 +1681,6 @@
         }
 
         @media (max-width: 768px) {
-            .settings-body { flex-direction: column; }
-            .settings-sidebar {
-                width: 100%;
-                border-left: none;
-                border-bottom: 1px solid var(--border);
-                display: flex;
-                overflow-x: auto;
-                padding: 8px 12px;
-                gap: 4px;
-            }
-            .settings-sidebar::-webkit-scrollbar { height: 2px; }
-            .settings-tab { white-space: nowrap; flex-shrink: 0; }
-            .settings-box { max-height: 90vh; }
             .settings-avatar { flex-direction: column; text-align: center; }
         }
 
@@ -2417,12 +2472,13 @@
             <div class="sidebar-icon" onclick="toggleTheme()" title="المظهر">
                 <i class="fas fa-palette"></i>
             </div>
-            <div class="sidebar-icon" onclick="openSettings()" title="الإعدادات" style="margin-bottom: 8px;">
+            <div class="sidebar-icon sidebar-avatar-wrap" onclick="openSettings()" title="الإعدادات" style="margin-bottom: 8px;">
                 <img id="sidebarAvatar" src="https://picsum.photos/seed/myavatar/100/100.jpg" style="width:36px;height:36px;border-radius:10px;object-fit:cover;" alt="الملف الشخصي">
             </div>
         </nav>
 
-        <aside class="rooms-panel" id="roomsPanel">
+            <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobilePanels()"></div>
+            <aside class="rooms-panel" id="roomsPanel">
             <div class="room-header">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
                     <span style="font-size:16px;font-weight:800;">NextosS</span>
@@ -2648,6 +2704,7 @@
             checkMobile();
             window.addEventListener('resize', checkMobile);
             window.addEventListener('beforeunload', () => { saveData(); saveSettings(); });
+            initMobileSwipe();
 
             document.addEventListener('click', (e) => {
                 const picker = document.getElementById('emojiPicker');
@@ -2842,7 +2899,7 @@
                 connectToVoice(room);
             }
 
-            document.getElementById('roomsPanel').classList.remove('mobile-open');
+            closeMobilePanels();
         }
 
         function updateChatHeader() {
@@ -3831,15 +3888,58 @@
 
         function toggleRooms() {
             const panel = document.getElementById('roomsPanel');
+            const overlay = document.getElementById('mobileOverlay');
             if (window.innerWidth <= 768) {
                 panel.classList.toggle('mobile-open');
+                overlay.classList.toggle('visible');
+                document.getElementById('membersPanel').classList.remove('mobile-open');
             } else {
                 panel.classList.toggle('collapsed');
             }
         }
 
         function toggleMembers() {
-            document.getElementById('membersPanel').classList.toggle('collapsed');
+            const panel = document.getElementById('membersPanel');
+            if (window.innerWidth <= 768) {
+                panel.classList.toggle('mobile-open');
+                document.getElementById('mobileOverlay').classList.toggle('visible');
+                document.getElementById('roomsPanel').classList.remove('mobile-open');
+            } else {
+                panel.classList.toggle('collapsed');
+            }
+        }
+
+        function closeMobilePanels() {
+            document.getElementById('roomsPanel').classList.remove('mobile-open');
+            document.getElementById('membersPanel').classList.remove('mobile-open');
+            document.getElementById('mobileOverlay').classList.remove('visible');
+        }
+
+        function initMobileSwipe() {
+            let startX, startY;
+            const roomsPanel = document.getElementById('roomsPanel');
+            const membersPanel = document.getElementById('membersPanel');
+
+            document.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!startX) return;
+                const dx = e.touches[0].clientX - startX;
+                const dy = e.touches[0].clientY - startY;
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
+                    if (dx > 0 && startX < 60 && membersPanel.classList.contains('mobile-open')) {
+                        membersPanel.classList.remove('mobile-open');
+                        document.getElementById('mobileOverlay').classList.remove('visible');
+                    } else if (dx < 0 && startX > window.innerWidth - 60 && roomsPanel.classList.contains('mobile-open')) {
+                        roomsPanel.classList.remove('mobile-open');
+                        document.getElementById('mobileOverlay').classList.remove('visible');
+                    }
+                }
+                startX = null;
+            }, { passive: true });
         }
 
         let themeIndex = 0;
@@ -3890,11 +3990,10 @@
 
         function checkMobile() {
             const btn = document.getElementById('mobileMenuBtn');
-            if (window.innerWidth <= 768) {
-                btn.style.display = 'flex';
-            } else {
-                btn.style.display = 'none';
-                document.getElementById('roomsPanel').classList.remove('mobile-open');
+            const isMobile = window.innerWidth <= 768;
+            btn.style.display = isMobile ? 'flex' : 'none';
+            if (!isMobile) {
+                closeMobilePanels();
             }
         }
 
