@@ -4435,7 +4435,10 @@
                 localStorage.setItem('nextoss_auth_user', JSON.stringify(authUser));
                 hideLogin();
                 initApp();
-            } catch (e) { errEl.textContent = 'تعذر الاتصال بالخادم'; }
+            } catch (e) {
+                errEl.textContent = 'الخادم يستيقظ، انتظر لحظة وحاول مجدداً...';
+                setTimeout(() => { errEl.textContent = ''; }, 5000);
+            }
         }
 
         async function handleRegister(e) {
@@ -4457,7 +4460,10 @@
                 localStorage.setItem('nextoss_auth_user', JSON.stringify(authUser));
                 hideLogin();
                 initApp();
-            } catch (e) { errEl.textContent = 'تعذر الاتصال بالخادم'; }
+            } catch (e) {
+                errEl.textContent = 'الخادم يستيقظ، انتظر لحظة وحاول مجدداً...';
+                setTimeout(() => { errEl.textContent = ''; }, 5000);
+            }
         }
 
         async function guestLogin() {
@@ -4471,7 +4477,10 @@
                 localStorage.setItem('nextoss_auth_user', JSON.stringify(authUser));
                 hideLogin();
                 initApp();
-            } catch(e) { document.getElementById('loginError').textContent = 'تعذر الاتصال بالخادم'; }
+            } catch(e) {
+                document.getElementById('loginError').textContent = 'الخادم يستيقظ، انتظر لحظة وحاول مجدداً...';
+                setTimeout(() => { document.getElementById('loginError').textContent = ''; }, 5000);
+            }
         }
 
         function hideLogin() {
@@ -4507,12 +4516,19 @@
                     console.log('[Backend] Connected');
                     showToast('تم الاتصال بالخادم', 'success');
                     initSocket();
+                    startKeepAlive();
                     return true;
                 }
             } catch (e) {
                 console.log('[Backend] Not available, running in local mode');
             }
             return false;
+        }
+
+        function startKeepAlive() {
+            setInterval(() => {
+                fetch(`${API_BASE}/health`).catch(() => {});
+            }, 240000);
         }
 
         function initSocket() {
