@@ -1,0 +1,14 @@
+{
+  "name": "nextoss",
+  "version": "1.0.0",
+  "description": "NextosS - Modern Arabic Chat Application",
+  "private": true,
+  "scripts": {
+    "start": "cd backend && node src/app.js",
+    "dev": "cd backend && node src/app.js",
+    "seed": "cd backend && node database/seeds/seed.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

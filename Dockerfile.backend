@@ -1,0 +1,10 @@
+FROM node:20-alpine
+WORKDIR /app
+COPY backend/package*.json ./
+RUN npm ci --only=production
+RUN npm install sharp --ignore-scripts=false --platform=linux --arch=x64
+COPY backend/ .
+RUN mkdir -p /app/uploads
+VOLUME [ "/app/uploads" ]
+EXPOSE 3001
+CMD ["node", "src/app.js"]

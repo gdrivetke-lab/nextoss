@@ -1,0 +1,4594 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextosS — دردشة المستقبل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-deep: #06090f;
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #151d2e;
+            --bg-elevated: #1a2540;
+            --accent: #FFC001;
+            --accent-dim: #FF991D;
+            --accent-glow: rgba(255, 192, 1, 0.3);
+            --accent-glow-strong: rgba(255, 192, 1, 0.6);
+            --text-primary: #e8ecf4;
+            --text-secondary: #7a8ba8;
+            --text-muted: #4a5a74;
+            --border: rgba(255,255,255,0.06);
+            --border-accent: rgba(255, 192, 1, 0.2);
+            --danger: #F3393A;
+            --warning: #FF991D;
+            --info: #F8EA49;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        #particleCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .glow-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 12s ease-in-out infinite;
+        }
+
+        .glow-orb-1 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(255,192,1,0.08), transparent 70%);
+            top: -100px; right: -100px;
+            animation-delay: 0s;
+        }
+
+        .glow-orb-2 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(62,198,255,0.05), transparent 70%);
+            bottom: -150px; left: -100px;
+            animation-delay: -4s;
+        }
+
+        .glow-orb-3 {
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(255,192,1,0.04), transparent 70%);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: -8s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.1); }
+            66% { transform: translate(-20px, 30px) scale(0.9); }
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .sidebar {
+            width: 72px;
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 0;
+            gap: 8px;
+            transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .sidebar-icon {
+            width: 48px; height: 48px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            font-size: 18px;
+        }
+
+        .sidebar-icon:hover {
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        .sidebar-icon.active {
+            color: var(--accent);
+            background: var(--accent-glow);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .sidebar-icon.active::before {
+            content: '';
+            position: absolute;
+            right: -12px;
+            width: 3px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .sidebar-icon .badge {
+            position: absolute;
+            top: 4px; left: 4px;
+            width: 10px; height: 10px;
+            background: var(--danger);
+            border-radius: 50%;
+            border: 2px solid var(--bg-deep);
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+
+        .sidebar-divider {
+            width: 32px;
+            height: 1px;
+            background: var(--border);
+            margin: 8px 0;
+        }
+
+        .rooms-panel {
+            width: 280px;
+            background: rgba(10, 14, 23, 0.9);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+
+        .rooms-panel.collapsed {
+            width: 0;
+            border: none;
+            padding: 0;
+        }
+
+        .room-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .room-search {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            direction: rtl;
+        }
+
+        .room-search:focus {
+            border-color: var(--border-accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .room-search::placeholder { color: var(--text-muted); }
+
+        .room-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .room-category {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px 8px 6px;
+        }
+
+        .room-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-bottom: 2px;
+            position: relative;
+        }
+
+        .room-item:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .room-item.active {
+            background: var(--accent-glow);
+        }
+
+        .room-item.active .room-name {
+            color: var(--accent);
+        }
+
+        .room-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .room-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .room-unread {
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            background: var(--accent);
+            color: var(--bg-deep);
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .room-voice-indicator {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: voicePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes voicePulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--accent-glow-strong); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 6px transparent; }
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+        }
+
+        .chat-header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(10, 14, 23, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .chat-header-info {
+            flex: 1;
+        }
+
+        .chat-header-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-header-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .header-btn {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.25s ease;
+        }
+
+        .header-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            scroll-behavior: smooth;
+        }
+
+        .message-group {
+            display: flex;
+            gap: 12px;
+            padding: 8px 0;
+            animation: msgSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes msgSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-avatar {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            flex-shrink: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .message-avatar img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-status {
+            position: absolute;
+            bottom: -1px; left: -1px;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--bg-deep);
+        }
+
+        .avatar-status.online { background: var(--accent); }
+        .avatar-status.idle { background: var(--warning); }
+        .avatar-status.offline { background: var(--text-muted); }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+            position: relative;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message-author {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-primary);
+            word-wrap: break-word;
+        }
+
+        .message-text a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .message-text code {
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            direction: ltr;
+        }
+
+        .message-voice {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 16px;
+            margin-top: 6px;
+            max-width: 320px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .message-voice:hover {
+            border-color: var(--border-accent);
+            background: var(--bg-elevated);
+        }
+
+        .voice-play-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--bg-deep);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .voice-play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px var(--accent-glow-strong);
+        }
+
+        .voice-waveform {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 28px;
+        }
+
+        .voice-bar {
+            width: 3px;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: height 0.15s ease;
+            opacity: 0.5;
+        }
+
+        .voice-bar.active { opacity: 1; }
+
+        .voice-duration {
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            animation: msgSlideIn 0.3s ease;
+        }
+
+        .typing-indicator.visible { display: flex; }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .typing-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: typingBounce 1.4s ease-in-out infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        .typing-text {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .chat-input-area {
+            padding: 16px 24px 20px;
+            background: rgba(10, 14, 23, 0.8);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 8px 12px;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--border-accent);
+            box-shadow: 0 0 0 3px var(--accent-glow), 0 4px 24px rgba(0,0,0,0.3);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 2px;
+            flex-shrink: 0;
+            padding-bottom: 4px;
+        }
+
+        .input-action-btn {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.25s ease;
+        }
+
+        .input-action-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .input-action-btn.recording {
+            color: var(--danger);
+            background: rgba(255, 71, 87, 0.1);
+            animation: recordPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes recordPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,71,87,0.3); }
+            50% { box-shadow: 0 0 0 8px transparent; }
+        }
+
+        #messageInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            outline: none;
+            resize: none;
+            max-height: 120px;
+            min-height: 36px;
+            padding: 6px 0;
+            direction: rtl;
+        }
+
+        #messageInput::placeholder { color: var(--text-muted); }
+
+        .send-btn {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: var(--accent);
+            color: var(--bg-deep);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .send-btn.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .send-btn.active:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 24px var(--accent-glow-strong);
+        }
+
+        .members-panel {
+            width: 260px;
+            background: rgba(10, 14, 23, 0.9);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+
+        .members-panel.collapsed {
+            width: 0;
+            border: none;
+        }
+
+        .members-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .members-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .member-category {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 12px 8px 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .member-item:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .member-avatar {
+            width: 32px; height: 32px;
+            border-radius: 10px;
+            position: relative;
+            flex-shrink: 0;
+            overflow: visible;
+        }
+
+        .member-avatar img {
+            width: 100%; height: 100%;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .member-name {
+            font-size: 13px;
+            font-weight: 500;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .member-role-icon {
+            font-size: 12px;
+        }
+
+        .member-voice-active {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .voice-active-bar {
+            width: 3px;
+            border-radius: 2px;
+            background: var(--accent);
+            animation: voiceBarAnim 0.6s ease-in-out infinite alternate;
+        }
+
+        .voice-active-bar:nth-child(1) { height: 8px; animation-delay: 0s; }
+        .voice-active-bar:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+        .voice-active-bar:nth-child(3) { height: 6px; animation-delay: 0.3s; }
+        .voice-active-bar:nth-child(4) { height: 11px; animation-delay: 0.45s; }
+
+        @keyframes voiceBarAnim {
+            from { transform: scaleY(0.4); }
+            to { transform: scaleY(1); }
+        }
+
+        .recording-bar {
+            display: none;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 20px;
+            background: rgba(255, 71, 87, 0.05);
+            border: 1px solid rgba(255, 71, 87, 0.15);
+            border-radius: 14px;
+            margin-bottom: 12px;
+            animation: recBarIn 0.3s ease;
+        }
+
+        .recording-bar.visible { display: flex; }
+
+        @keyframes recBarIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .rec-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--danger);
+            animation: recDotPulse 1s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes recDotPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .rec-timer {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--danger);
+            font-variant-numeric: tabular-nums;
+            direction: ltr;
+        }
+
+        .rec-wave {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 32px;
+            overflow: hidden;
+        }
+
+        .rec-wave-bar {
+            width: 3px;
+            border-radius: 2px;
+            background: var(--danger);
+            opacity: 0.6;
+            transition: height 0.1s ease;
+        }
+
+        .rec-cancel-btn, .rec-send-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .rec-cancel-btn {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+
+        .rec-cancel-btn:hover { background: rgba(255,255,255,0.1); }
+
+        .rec-send-btn {
+            background: var(--accent);
+            color: var(--bg-deep);
+        }
+
+        .rec-send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 16px var(--accent-glow-strong);
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            color: var(--text-primary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: toastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            white-space: nowrap;
+        }
+
+        .toast.removing {
+            animation: toastOut 0.3s ease forwards;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes toastOut {
+            to { opacity: 0; transform: translateY(-20px) scale(0.95); }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            width: 90%;
+            max-width: 440px;
+            animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .modal-field {
+            margin-bottom: 16px;
+        }
+
+        .modal-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            direction: rtl;
+        }
+
+        .modal-input:focus {
+            border-color: var(--border-accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .modal-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            direction: rtl;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 12px;
+            border: none;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: var(--accent);
+            color: var(--bg-deep);
+        }
+
+        .modal-btn-primary:hover {
+            box-shadow: 0 0 20px var(--accent-glow-strong);
+            transform: translateY(-1px);
+        }
+
+        .modal-btn-secondary {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+
+        .modal-btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .voice-channel-bar {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 24px;
+            background: rgba(255, 192, 1, 0.05);
+            border-bottom: 1px solid var(--border-accent);
+            animation: slideDown 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .voice-channel-bar.visible { display: flex; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-100%); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .voice-connected-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: voicePulse 1.5s ease-in-out infinite;
+        }
+
+        .voice-channel-name {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .voice-channel-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            flex: 1;
+        }
+
+        .voice-disconnect-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--danger);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .voice-disconnect-btn:hover {
+            background: rgba(255, 71, 87, 0.2);
+        }
+
+        .date-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 0;
+        }
+
+        .date-divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .date-divider-text {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 4px 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        @media (max-width: 1024px) {
+            .members-panel { width: 0; border: none; }
+            .rooms-panel { width: 240px; }
+        }
+
+        @media (max-width: 768px) {
+            .rooms-panel { position: fixed; right: 72px; top: 0; bottom: 0; z-index: 20; width: 280px; transform: translateX(100%); }
+            .rooms-panel.mobile-open { transform: translateX(0); }
+            .sidebar { width: 60px; }
+            .chat-header { padding: 0 16px; }
+            .messages-area { padding: 16px; }
+            .chat-input-area { padding: 12px 16px 16px; }
+        }
+
+        .hover-lift {
+            transition: transform 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-2px);
+        }
+
+        .glass {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+        }
+
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--bg-deep);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--accent);
+            letter-spacing: 4px;
+            animation: logoPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { opacity: 1; text-shadow: 0 0 20px var(--accent-glow-strong); }
+            50% { opacity: 0.7; text-shadow: 0 0 40px var(--accent-glow-strong); }
+        }
+
+        .loading-bar-track {
+            width: 200px;
+            height: 3px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 12px var(--accent-glow-strong);
+        }
+
+        .loading-text {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .emoji-picker {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 12px;
+            margin-bottom: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+            width: 320px;
+            max-height: 280px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            z-index: 50;
+            animation: pickerIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .emoji-picker.visible { display: block; }
+
+        @keyframes pickerIn {
+            from { opacity: 0; transform: translateY(8px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+        }
+
+        .emoji-btn {
+            width: 36px; height: 36px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .emoji-btn:hover {
+            background: rgba(255,255,255,0.08);
+            transform: scale(1.2);
+        }
+
+        .volume-meter {
+            display: flex;
+            align-items: flex-end;
+            gap: 1px;
+            height: 20px;
+        }
+
+        .vol-bar {
+            width: 3px;
+            border-radius: 1px;
+            background: var(--accent);
+            transition: height 0.08s ease;
+        }
+
+        .settings-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(12px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .settings-modal.visible { display: flex; }
+
+        .settings-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            width: 92%;
+            max-width: 720px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .settings-header h2 {
+            font-size: 20px;
+            font-weight: 800;
+            flex: 1;
+        }
+
+        .settings-close {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+        }
+
+        .settings-close:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+
+        .settings-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .settings-sidebar {
+            width: 200px;
+            flex-shrink: 0;
+            padding: 12px;
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .settings-tab {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            margin-bottom: 2px;
+        }
+
+        .settings-tab:hover {
+            background: rgba(255,255,255,0.03);
+            color: var(--text-primary);
+        }
+
+        .settings-tab.active {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .settings-tab i {
+            width: 20px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .settings-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            direction: rtl;
+        }
+
+        .settings-section {
+            display: none;
+            animation: msgSlideIn 0.3s ease;
+        }
+
+        .settings-section.active { display: block; }
+
+        .settings-section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .settings-section p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .settings-group .hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            direction: rtl;
+        }
+
+        .settings-input:focus {
+            border-color: var(--border-accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .settings-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            resize: vertical;
+            min-height: 80px;
+            direction: rtl;
+        }
+
+        .settings-textarea:focus {
+            border-color: var(--border-accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .settings-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            direction: rtl;
+        }
+
+        .settings-avatar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .settings-avatar-img {
+            width: 80px; height: 80px;
+            border-radius: 20px;
+            object-fit: cover;
+            border: 3px solid var(--border-accent);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .settings-avatar-img:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow-strong);
+        }
+
+        .settings-avatar-info h4 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .settings-avatar-info span {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .settings-avatar-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .settings-avatar-badge.admin {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--danger);
+        }
+
+        .settings-btn {
+            padding: 10px 24px;
+            border-radius: 12px;
+            border: none;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .settings-btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .settings-btn-primary:hover {
+            box-shadow: 0 0 20px var(--accent-glow-strong);
+            transform: translateY(-1px);
+        }
+
+        .settings-btn-secondary {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+
+        .settings-btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .settings-btn-danger {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--danger);
+        }
+
+        .settings-btn-danger:hover {
+            background: rgba(255, 71, 87, 0.2);
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-row:last-child { border-bottom: none; }
+
+        .settings-row-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .settings-row-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: var(--text-muted);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch.on {
+            background: var(--accent);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.on::after {
+            right: 22px;
+        }
+
+        .settings-status-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .settings-status-btn {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .settings-status-btn:hover {
+            border-color: var(--border-accent);
+        }
+
+        .settings-status-btn.active {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .settings-status-btn .status-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-left: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .settings-body { flex-direction: column; }
+            .settings-sidebar {
+                width: 100%;
+                border-left: none;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                overflow-x: auto;
+                padding: 8px 12px;
+                gap: 4px;
+            }
+            .settings-sidebar::-webkit-scrollbar { height: 2px; }
+            .settings-tab { white-space: nowrap; flex-shrink: 0; }
+            .settings-box { max-height: 90vh; }
+            .settings-avatar { flex-direction: column; text-align: center; }
+        }
+
+        .member-context-menu {
+            position: fixed;
+            z-index: 300;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 6px;
+            min-width: 200px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            animation: pickerIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: none;
+        }
+
+        .member-context-menu.visible { display: block; }
+
+        .ctx-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px 8px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 4px;
+        }
+
+        .ctx-header img {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .ctx-header-info h4 {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .ctx-header-info span {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .ctx-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .ctx-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+
+        .ctx-item.danger {
+            color: var(--danger);
+        }
+
+        .ctx-item.danger:hover {
+            background: rgba(255, 71, 87, 0.1);
+        }
+
+        .ctx-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .ctx-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 8px;
+        }
+
+        .message-actions {
+            opacity: 0;
+            display: flex;
+            gap: 2px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1px;
+            transition: opacity 0.2s ease;
+            margin-left: 6px;
+        }
+
+        .message-header:hover .message-actions {
+            opacity: 1;
+        }
+
+        .msg-action-btn {
+            width: 30px; height: 30px;
+            border-radius: 7px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .msg-action-btn:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        .msg-action-btn.danger:hover {
+            background: rgba(255,71,87,0.15);
+            color: var(--danger);
+        }
+
+        .msg-reactions {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            min-height: 24px;
+        }
+
+        .msg-reaction {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .msg-reaction:hover {
+            border-color: var(--border-accent);
+            background: var(--accent-glow);
+        }
+
+        .msg-reaction.active {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        .msg-reaction .count {
+            font-size: 11px;
+            color: var(--text-muted);
+            min-width: 10px;
+            text-align: center;
+        }
+
+        .msg-reaction-bar {
+            display: none;
+            gap: 2px;
+            padding: 4px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-top: 4px;
+            width: fit-content;
+        }
+
+        .msg-reaction-bar.visible {
+            display: flex;
+        }
+
+        .reaction-emoji-btn {
+            width: 32px; height: 32px;
+            border-radius: 7px;
+            border: none;
+            background: transparent;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .reaction-emoji-btn:hover {
+            background: rgba(255,255,255,0.08);
+            transform: scale(1.2);
+        }
+
+        .message-content {
+            position: relative;
+        }
+
+        .msg-edit-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-accent);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            outline: none;
+            direction: rtl;
+        }
+
+        .msg-edit-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .msg-edit-btn {
+            padding: 4px 14px;
+            border-radius: 8px;
+            border: none;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .msg-edit-btn.save {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .msg-edit-btn.cancel {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+
+        .msg-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: block;
+            margin-top: 4px;
+        }
+
+        .msg-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        .search-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+            animation: slideDown 0.2s ease;
+        }
+
+        .search-overlay.visible { display: flex; }
+
+        .search-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            outline: none;
+            direction: rtl;
+        }
+
+        .search-input:focus {
+            border-color: var(--border-accent);
+        }
+
+        .search-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .search-nav-btn {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .search-nav-btn:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+
+        .search-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        /* ===== Login / Auth ===== */
+        .login-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(4,7,15,0.97);
+            backdrop-filter: blur(20px);
+        }
+        .login-overlay.hidden { display: none; }
+        .login-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-accent);
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 0 60px rgba(255,192,1,0.08);
+        }
+        .login-logo { text-align: center; margin-bottom: 32px; display: flex; flex-direction: column; gap: 4px; }
+        .login-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+        .login-tab {
+            flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border-accent);
+            background: transparent; color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: 600;
+            transition: all 0.2s;
+        }
+        .login-tab.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .login-tab:hover:not(.active) { background: rgba(255,255,255,0.03); }
+        .login-field { margin-bottom: 16px; }
+        .login-field label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+        .login-input {
+            width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-accent);
+            background: rgba(255,255,255,0.03); color: var(--text-primary); font-size: 14px; outline: none;
+            transition: border-color 0.2s; box-sizing: border-box;
+        }
+        .login-input:focus { border-color: var(--accent); }
+        .login-submit {
+            width: 100%; padding: 14px; border-radius: 12px; border: none;
+            background: var(--accent); color: #000; font-size: 15px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s; margin-top: 8px;
+        }
+        .login-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow); }
+        .login-error { color: var(--danger); font-size: 12px; text-align: center; margin-top: 12px; min-height: 20px; }
+        .logout-btn {
+            display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px 16px;
+            border-radius: 10px; border: 1px solid rgba(243,57,58,0.2); background: rgba(243,57,58,0.05);
+            color: var(--danger); cursor: pointer; font-size: 13px; font-weight: 600;
+            transition: all 0.2s; margin-top: 16px;
+        }
+        .logout-btn:hover { background: rgba(243,57,58,0.12); }
+
+        .search-highlight {
+            background: rgba(255, 192, 1, 0.3);
+            border-radius: 4px;
+            padding: 0 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-logo">NextosS</div>
+        <div class="loading-bar-track">
+            <div class="loading-bar-fill" id="loadingBar"></div>
+        </div>
+        <div class="loading-text" id="loadingText">جاري تهيئة البيئة...</div>
+    </div>
+
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="modal-overlay" id="createRoomModal">
+        <div class="modal-box">
+            <div class="modal-title">إنشاء غرفة جديدة</div>
+            <div class="modal-field">
+                <label class="modal-label">اسم الغرفة</label>
+                <input class="modal-input" id="newRoomName" placeholder="أدخل اسم الغرفة..." maxlength="40">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">نوع الغرفة</label>
+                <select class="modal-select" id="newRoomType">
+                    <option value="text">نصية</option>
+                    <option value="voice">صوتية</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-primary" onclick="createRoom()">إنشاء</button>
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-box">
+            <div class="settings-header">
+                <h2><i class="fas fa-user-gear" style="color:var(--accent);margin-left:10px;"></i>الإعدادات</h2>
+                <button class="settings-close" onclick="closeSettings()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="settings-body">
+                <div class="settings-sidebar">
+                    <div class="settings-tab active" data-tab="profile" onclick="switchSettingsTab('profile')">
+                        <i class="fas fa-user"></i> الملف الشخصي
+                    </div>
+                    <div class="settings-tab" data-tab="account" onclick="switchSettingsTab('account')">
+                        <i class="fas fa-lock"></i> الحساب
+                    </div>
+                    <div class="settings-tab" data-tab="notifications" onclick="switchSettingsTab('notifications')">
+                        <i class="fas fa-bell"></i> الإشعارات
+                    </div>
+                    <div class="settings-tab" data-tab="privacy" onclick="switchSettingsTab('privacy')">
+                        <i class="fas fa-shield-halved"></i> الخصوصية
+                    </div>
+                    <div class="settings-tab" data-tab="appearance" onclick="switchSettingsTab('appearance')">
+                        <i class="fas fa-palette"></i> المظهر
+                    </div>
+                    <div class="settings-tab" data-tab="language" onclick="switchSettingsTab('language')">
+                        <i class="fas fa-globe"></i> اللغة والمنطقة
+                    </div>
+                </div>
+                <div class="settings-content">
+                    <!-- الملف الشخصي -->
+                    <div class="settings-section active" id="section-profile">
+                        <h3>الملف الشخصي</h3>
+                        <p>قم بتخصيص ملفك الشخصي وبياناتك العامة</p>
+
+                        <div class="settings-avatar">
+                            <img class="settings-avatar-img" id="settingsAvatar" src="https://picsum.photos/seed/myavatar/100/100.jpg" alt="الصورة الشخصية" onclick="document.getElementById('avatarUpload').click()">
+                            <input type="file" id="avatarUpload" accept="image/*" style="display:none" onchange="updateAvatar(event)">
+                            <div class="settings-avatar-info">
+                                <h4 id="settingsDisplayName">أنت</h4>
+                                <span id="settingsDisplayEmail">user@nexus.chat</span>
+                                <div class="settings-avatar-badge admin"><i class="fas fa-crown"></i> مسؤول</div>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>الاسم الظاهر</label>
+                            <input class="settings-input" id="settingsName" value="أنت" maxlength="30" oninput="currentUser.name = this.value; updateSettingsUI()">
+                        </div>
+
+                        <div class="settings-group">
+                            <label>نبذة عنك</label>
+                            <textarea class="settings-textarea" id="settingsBio" placeholder="اكتب نبذة قصيرة عن نفسك..." maxlength="200">مصمم ومطور واجهات، أحب الإبداع والتقنية</textarea>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>الحالة</label>
+                            <div class="settings-status-options">
+                                <button class="settings-status-btn active" data-status="online" onclick="setStatus('online', this)">
+                                    <span class="status-dot" style="background:var(--accent);"></span> متصل
+                                </button>
+                                <button class="settings-status-btn" data-status="idle" onclick="setStatus('idle', this)">
+                                    <span class="status-dot" style="background:var(--warning);"></span> غير نشط
+                                </button>
+                                <button class="settings-status-btn" data-status="offline" onclick="setStatus('offline', this)">
+                                    <span class="status-dot" style="background:var(--text-muted);"></span> غير متصل
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:24px;">
+                            <button class="settings-btn settings-btn-primary" onclick="saveProfile()"><i class="fas fa-check" style="margin-left:6px;"></i> حفظ التغييرات</button>
+                        </div>
+                    </div>
+
+                    <!-- الحساب -->
+                    <div class="settings-section" id="section-account">
+                        <h3>الحساب والأمان</h3>
+                        <p>إدارة بيانات الحساب وكلمة المرور</p>
+
+                        <div class="settings-group">
+                            <label>البريد الإلكتروني</label>
+                            <input class="settings-input" id="settingsEmail" value="user@nexus.chat" dir="ltr" style="direction:ltr;text-align:right;">
+                            <div class="hint">البريد الإلكتروني المرتبط بحسابك</div>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>كلمة المرور</label>
+                            <input class="settings-input" type="password" id="settingsPassword" placeholder="********" value="password123" dir="ltr" style="direction:ltr;text-align:right;">
+                            <div class="hint">اتركه فارغاً إذا لم ترد التغيير</div>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>تأكيد كلمة المرور</label>
+                            <input class="settings-input" type="password" id="settingsPasswordConfirm" placeholder="أعد إدخال كلمة المرور" dir="ltr" style="direction:ltr;text-align:right;">
+                        </div>
+
+                        <div style="margin-top:24px;">
+                            <button class="settings-btn settings-btn-primary" onclick="saveAccount()"><i class="fas fa-check" style="margin-left:6px;"></i> حفظ</button>
+                        </div>
+
+                        <button class="logout-btn" onclick="handleLogout()">
+                            <i class="fas fa-right-from-bracket"></i>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </div>
+
+                    <!-- الإشعارات -->
+                    <div class="settings-section" id="section-notifications">
+                        <h3>الإشعارات</h3>
+                        <p>تحكم في إشعارات التطبيق</p>
+
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <h4>إشعارات الرسائل</h4>
+                                <p>إشعار عند استلام رسالة جديدة</p>
+                            </div>
+                            <div class="toggle-switch on" id="notifMessages" onclick="toggleSwitch('notifMessages')"></div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <h4>إشعارات الصوت</h4>
+                                <p>عند دخول أو خروج أعضاء من القناة الصوتية</p>
+                            </div>
+                            <div class="toggle-switch" id="notifVoice" onclick="toggleSwitch('notifVoice')"></div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <h4>إشعارات الغرف</h4>
+                                <p>عند إضافة غرفة جديدة أو تعديلها</p>
+                            </div>
+                            <div class="toggle-switch on" id="notifRooms" onclick="toggleSwitch('notifRooms')"></div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <h4>صوت الإشعارات</h4>
+                                <p>تشغيل صوت عند وصول الإشعارات</p>
+                            </div>
+                            <div class="toggle-switch on" id="notifSound" onclick="toggleSwitch('notifSound')"></div>
+                        </div>
+                    </div>
+
+                    <!-- الخصوصية -->
+                    <div class="settings-section" id="section-privacy">
+                        <h3>الخصوصية</h3>
+                        <p>إعدادات الخصوصية والأمان</p>
+
+                        <div class="settings-group">
+                            <label>من يستطيع إرسال رسالة خاصة لك؟</label>
+                            <select class="settings-select" id="privacyDMs">
+                                <option value="everyone">الجميع</option>
+                                <option value="friends" selected>الأصدقاء فقط</option>
+                                <option value="none">لا أحد</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>من يستطيع إضافتك إلى غرف؟</label>
+                            <select class="settings-select" id="privacyGroups">
+                                <option value="everyone">الجميع</option>
+                                <option value="friends" selected>الأصدقاء فقط</option>
+                                <option value="none">لا أحد</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <h4>إظهار حالتك للجميع</h4>
+                                <p>عند التعطيل، ستظهر كـ "غير متصل" للآخرين</p>
+                            </div>
+                            <div class="toggle-switch on" id="privacyStatus" onclick="toggleSwitch('privacyStatus')"></div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <h4>منع الرسائل المباشرة من الغرباء</h4>
+                                <p>حظر الرسائل من أشخاص خارج قائمة أصدقائك</p>
+                            </div>
+                            <div class="toggle-switch on" id="privacyBlockStrangers" onclick="toggleSwitch('privacyBlockStrangers')"></div>
+                        </div>
+                    </div>
+
+                    <!-- المظهر -->
+                    <div class="settings-section" id="section-appearance">
+                        <h3>المظهر</h3>
+                        <p>تخصيص مظهر التطبيق</p>
+
+                        <div class="settings-group">
+                            <label>السمة</label>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <button class="settings-status-btn" onclick="toggleTheme()">
+                                    <i class="fas fa-palette" style="margin-left:6px;"></i> تغيير السمة
+                                </button>
+                            </div>
+                            <div class="hint">السمة الحالية: <span id="currentThemeName">ذهبي</span></div>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>حجم الخط</label>
+                            <select class="settings-select" id="settingsFontSize" onchange="changeFontSize(this.value)">
+                                <option value="small">صغير</option>
+                                <option value="medium" selected>وسط</option>
+                                <option value="large">كبير</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <h4>تقليل الحركة</h4>
+                                <p>إيقاف تأثيرات الحركة والرسوم المتحركة</p>
+                            </div>
+                            <div class="toggle-switch" id="reduceMotion" onclick="toggleSwitch('reduceMotion')"></div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <h4>وضع التباين العالي</h4>
+                                <p>زيادة تباين الألوان للنصوص</p>
+                            </div>
+                            <div class="toggle-switch" id="highContrast" onclick="toggleSwitch('highContrast')"></div>
+                        </div>
+                    </div>
+
+                    <!-- اللغة والمنطقة -->
+                    <div class="settings-section" id="section-language">
+                        <h3>اللغة والمنطقة</h3>
+                        <p>إعدادات اللغة والتنسيقات المحلية</p>
+
+                        <div class="settings-group">
+                            <label>لغة الواجهة</label>
+                            <select class="settings-select" id="settingsLanguage" onchange="changeLanguage(this.value)">
+                                <option value="ar" selected>العربية</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>المنطقة الزمنية</label>
+                            <select class="settings-select" id="settingsTimezone">
+                                <optgroup label="فلسطين">
+                                    <option value="Asia/Hebron" selected>(UTC+03:00) فلسطين — القدس</option>
+                                    <option value="Asia/Gaza">(UTC+03:00) فلسطين — غزة</option>
+                                </optgroup>
+                                <optgroup label="شمال أفريقيا">
+                                    <option value="Africa/Cairo">(UTC+03:00) مصر</option>
+                                    <option value="Africa/Tripoli">(UTC+02:00) ليبيا</option>
+                                    <option value="Africa/Tunis">(UTC+01:00) تونس</option>
+                                    <option value="Africa/Algiers">(UTC+01:00) الجزائر</option>
+                                    <option value="Africa/Casablanca">(UTC+01:00) المغرب</option>
+                                    <option value="Africa/Nouakchott">(UTC+00:00) موريتانيا</option>
+                                    <option value="Africa/Khartoum">(UTC+02:00) السودان</option>
+                                </optgroup>
+                                <optgroup label="القرن الأفريقي">
+                                    <option value="Africa/Mogadishu">(UTC+03:00) الصومال</option>
+                                    <option value="Africa/Djibouti">(UTC+03:00) جيبوتي</option>
+                                    <option value="Indian/Comoro">(UTC+03:00) جزر القمر</option>
+                                </optgroup>
+                                <optgroup label="الخليج العربي">
+                                    <option value="Asia/Riyadh">(UTC+03:00) السعودية</option>
+                                    <option value="Asia/Dubai">(UTC+04:00) الإمارات</option>
+                                    <option value="Asia/Kuwait">(UTC+03:00) الكويت</option>
+                                    <option value="Asia/Qatar">(UTC+03:00) قطر</option>
+                                    <option value="Asia/Muscat">(UTC+04:00) عُمان</option>
+                                    <option value="Asia/Bahrain">(UTC+03:00) البحرين</option>
+                                </optgroup>
+                                <optgroup label="الهلال الخصيب">
+                                    <option value="Asia/Amman">(UTC+03:00) الأردن</option>
+                                    <option value="Asia/Beirut">(UTC+03:00) لبنان</option>
+                                    <option value="Asia/Damascus">(UTC+03:00) سوريا</option>
+                                    <option value="Asia/Baghdad">(UTC+03:00) العراق</option>
+                                </optgroup>
+                                <optgroup label="اليمن">
+                                    <option value="Asia/Aden">(UTC+03:00) اليمن</option>
+                                </optgroup>
+                                <optgroup label="أخرى">
+                                    <option value="Europe/Istanbul">(UTC+03:00) تركيا</option>
+                                    <option value="Asia/Tehran">(UTC+03:30) إيران</option>
+                                    <option value="Asia/Kabul">(UTC+04:30) أفغانستان</option>
+                                    <option value="Asia/Karachi">(UTC+05:00) باكستان</option>
+                                    <option value="Asia/Dhaka">(UTC+06:00) بنغلاديش</option>
+                                    <option value="Asia/Jakarta">(UTC+07:00) إندونيسيا</option>
+                                    <option value="Asia/Kuala_Lumpur">(UTC+08:00) ماليزيا</option>
+                                    <option value="Europe/London">(UTC+01:00) لندن</option>
+                                    <option value="Europe/Berlin">(UTC+02:00) برلين</option>
+                                    <option value="Europe/Paris">(UTC+02:00) باريس</option>
+                                    <option value="America/New_York">(UTC-04:00) نيويورك</option>
+                                    <option value="America/Chicago">(UTC-05:00) شيكاغو</option>
+                                    <option value="America/Denver">(UTC-06:00) دنفر</option>
+                                    <option value="America/Los_Angeles">(UTC-07:00) لوس أنجلوس</option>
+                                    <option value="America/Toronto">(UTC-04:00) تورونتو</option>
+                                    <option value="America/Sao_Paulo">(UTC-03:00) ساو باولو</option>
+                                    <option value="Australia/Sydney">(UTC+10:00) سيدني</option>
+                                    <option value="Asia/Tokyo">(UTC+09:00) طوكيو</option>
+                                    <option value="Asia/Shanghai">(UTC+08:00) شانغهاي</option>
+                                    <option value="Asia/Seoul">(UTC+09:00) سول</option>
+                                    <option value="Pacific/Auckland">(UTC+12:00) أوكلاند</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>تنسيق الوقت</label>
+                            <select class="settings-select" id="settingsTimeFormat">
+                                <option value="12h" selected>12 ساعة (ص/م)</option>
+                                <option value="24h">24 ساعة</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Login Modal ===== -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="login-logo">
+                <span class="font-orbitron" style="font-size:28px;color:var(--accent);font-weight:900;">NextosS</span>
+                <span style="font-size:13px;color:var(--text-muted);margin-top:4px;">سجل الدخول لبدء المحادثة</span>
+            </div>
+
+            <div class="login-tabs">
+                <button class="login-tab active" onclick="switchLoginTab('login')">تسجيل الدخول</button>
+                <button class="login-tab" onclick="switchLoginTab('register')">إنشاء حساب</button>
+                <button class="login-tab" onclick="guestLogin()">دخول ضيف</button>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="login-field">
+                    <label>البريد الإلكتروني أو اسم المستخدم</label>
+                    <input class="login-input" id="loginEmail" placeholder="admin@nextoss.com" required>
+                </div>
+                <div class="login-field">
+                    <label>كلمة المرور</label>
+                    <input class="login-input" type="password" id="loginPassword" placeholder="••••••" required>
+                </div>
+                <button type="submit" class="login-submit">تسجيل الدخول</button>
+                <div class="login-error" id="loginError"></div>
+            </form>
+
+            <form id="registerForm" onsubmit="handleRegister(event)" style="display:none;">
+                <div class="login-field">
+                    <label>اسم المستخدم</label>
+                    <input class="login-input" id="regUsername" placeholder="myusername" required minlength="3">
+                </div>
+                <div class="login-field">
+                    <label>البريد الإلكتروني</label>
+                    <input class="login-input" id="regEmail" placeholder="user@example.com" type="email">
+                </div>
+                <div class="login-field">
+                    <label>كلمة المرور</label>
+                    <input class="login-input" type="password" id="regPassword" placeholder="••••••" required minlength="6">
+                </div>
+                <button type="submit" class="login-submit">إنشاء حساب</button>
+                <div class="login-error" id="registerError"></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" id="appContainer" style="opacity:0; transition: opacity 0.6s ease;">
+        <nav class="sidebar">
+            <div class="sidebar-icon active" onclick="navigateTo('chat')" title="الدردشة" id="navChat">
+                <i class="fas fa-comment-dots"></i>
+                <div class="badge"></div>
+            </div>
+            <div class="sidebar-icon" onclick="navigateTo('voice')" title="القنوات الصوتية" id="navVoice">
+                <i class="fas fa-headset"></i>
+            </div>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-icon" onclick="openDMs()" title="المحادثات الخاصة" id="navDMs">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <div class="sidebar-icon" onclick="openCreateRoomModal()" title="إنشاء غرفة">
+                <i class="fas fa-plus"></i>
+            </div>
+            <div class="sidebar-icon" onclick="toggleRooms()" title="الغرف" id="navRooms">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-icon" onclick="toggleMembers()" title="الأعضاء" id="navMembers">
+                <i class="fas fa-users"></i>
+            </div>
+            <div style="flex:1"></div>
+            <div class="sidebar-icon" onclick="toggleTheme()" title="المظهر">
+                <i class="fas fa-palette"></i>
+            </div>
+            <div class="sidebar-icon" onclick="openSettings()" title="الإعدادات" style="margin-bottom: 8px;">
+                <img id="sidebarAvatar" src="https://picsum.photos/seed/myavatar/100/100.jpg" style="width:36px;height:36px;border-radius:10px;object-fit:cover;" alt="الملف الشخصي">
+            </div>
+        </nav>
+
+        <aside class="rooms-panel" id="roomsPanel">
+            <div class="room-header">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <span style="font-size:16px;font-weight:800;">NextosS</span>
+                    <span class="font-orbitron" style="font-size:10px;color:var(--accent);letter-spacing:2px;">v2.6</span>
+                </div>
+                <input class="room-search" id="roomSearch" placeholder="بحث في الغرف..." oninput="filterRooms()">
+            </div>
+            <div class="room-list" id="roomList"></div>
+            <div class="room-list" id="dmList" style="display:none;"></div>
+        </aside>
+
+        <main class="chat-main">
+            <div class="voice-channel-bar" id="voiceChannelBar">
+                <div class="voice-connected-dot"></div>
+                <span class="voice-channel-name" id="voiceChannelName">القناة الصوتية</span>
+                <span class="voice-channel-info" id="voiceChannelInfo">متصل — 00:00</span>
+                <div class="volume-meter" id="volumeMeter"></div>
+                <button class="voice-disconnect-btn" onclick="disconnectVoice()">
+                    <i class="fas fa-phone-slash" style="margin-left:6px;"></i> قطع
+                </button>
+            </div>
+
+            <header class="chat-header">
+                <button class="header-btn" onclick="toggleRooms()" style="display:none;" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="chat-header-info">
+                    <div class="chat-header-title" id="chatTitle">
+                        <i class="fas fa-hashtag" style="color:var(--text-muted);font-size:14px;"></i>
+                        <span>عام</span>
+                    </div>
+                    <div class="chat-header-subtitle" id="chatSubtitle">النقاشات العامة حول أي موضوع</div>
+                </div>
+                <div class="header-actions">
+                    <button class="header-btn" onclick="toggleMembers()" title="قائمة الأعضاء"><i class="fas fa-users"></i></button>
+                    <button class="header-btn" onclick="openSearch()" title="البحث في الرسائل"><i class="fas fa-search"></i></button>
+                    <button class="header-btn" title="تثبيت"><i class="fas fa-thumbtack"></i></button>
+                    <button class="header-btn" onclick="toggleMembers()" id="membersToggleBtn" title="إظهار/إخفاء الأعضاء"><i class="fas fa-chevron-left"></i></button>
+                </div>
+            </header>
+
+            <div class="search-overlay" id="searchOverlay">
+                <input class="search-input" id="searchInput" placeholder="ابحث في الرسائل..." oninput="searchMessages(this.value)" onkeydown="if(event.key==='Enter') searchMessages(this.value)">
+                <span class="search-count" id="searchCount"></span>
+                <button class="search-nav-btn" id="searchPrev" onclick="searchPrev()" disabled><i class="fas fa-chevron-up"></i></button>
+                <button class="search-nav-btn" id="searchNext" onclick="searchNext()" disabled><i class="fas fa-chevron-down"></i></button>
+                <button class="search-nav-btn" onclick="closeSearch()"><i class="fas fa-xmark"></i></button>
+            </div>
+
+            <div class="messages-area" id="messagesArea"></div>
+
+            <div class="chat-input-area" style="position:relative;">
+                <div class="recording-bar" id="recordingBar">
+                    <div class="rec-dot"></div>
+                    <span class="rec-timer" id="recTimer">00:00</span>
+                    <div class="rec-wave" id="recWave"></div>
+                    <button class="rec-cancel-btn" onclick="cancelRecording()" title="إلغاء"><i class="fas fa-xmark"></i></button>
+                    <button class="rec-send-btn" onclick="sendRecording()" title="إرسال"><i class="fas fa-paper-plane"></i></button>
+                </div>
+
+                <div class="emoji-picker" id="emojiPicker"></div>
+
+                <div class="input-wrapper">
+                    <div class="input-actions">
+                        <button class="input-action-btn" onclick="toggleEmojiPicker()" title="إيموجي"><i class="fas fa-face-smile"></i></button>
+                        <button class="input-action-btn" id="voiceRecordBtn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" title="تسجيل صوتي"><i class="fas fa-microphone"></i></button>
+                        <button class="input-action-btn" onclick="document.getElementById('fileUpload').click()" title="إرفاق ملف"><i class="fas fa-paperclip"></i></button>
+                        <input type="file" id="fileUpload" accept="image/*" style="display:none" onchange="uploadFile(event)">
+                    </div>
+                    <textarea id="messageInput" rows="1" placeholder="اكتب رسالتك..." onkeydown="handleInputKey(event)" oninput="autoResize(this); updateSendBtn()"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </main>
+
+        <aside class="members-panel" id="membersPanel">
+            <div class="members-header">
+                الأعضاء — <span id="memberCount">0</span>
+            </div>
+            <div class="members-list" id="membersList"></div>
+        </aside>
+    </div>
+
+    <div class="member-context-menu" id="memberContextMenu">
+        <div class="ctx-header" id="ctxHeader">
+            <img id="ctxAvatar" src="" alt="">
+            <div class="ctx-header-info">
+                <h4 id="ctxName"></h4>
+                <span id="ctxStatus"></span>
+            </div>
+        </div>
+        <div class="ctx-item" onclick="ctxSendMessage()">
+            <i class="fas fa-comment"></i> إرسال رسالة
+        </div>
+        <div class="ctx-item" onclick="ctxAddFriend()">
+            <i class="fas fa-user-plus"></i> إضافة صديق
+        </div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item danger" onclick="ctxBlockUser()">
+            <i class="fas fa-ban"></i> حظر المستخدم
+        </div>
+    </div>
+
+    <script>
+        let ctxTargetUser = null;
+
+        const currentUser = {
+            id: 'me',
+            name: 'أنت',
+            avatar: 'https://picsum.photos/seed/myavatar/100/100.jpg',
+            status: 'online',
+            role: 'admin'
+        };
+
+        const users = [
+            { id: 'u1', name: 'سارة أحمد', avatar: 'https://picsum.photos/seed/sara22/100/100.jpg', status: 'online', role: 'admin', inVoice: false },
+            { id: 'u2', name: 'خالد المطيري', avatar: 'https://picsum.photos/seed/khaled88/100/100.jpg', status: 'online', role: 'moderator', inVoice: true },
+            { id: 'u3', name: 'نورة العلي', avatar: 'https://picsum.photos/seed/noura55/100/100.jpg', status: 'idle', role: 'member', inVoice: false },
+            { id: 'u4', name: 'فهد الدوسري', avatar: 'https://picsum.photos/seed/fahad33/100/100.jpg', status: 'online', role: 'member', inVoice: true },
+            { id: 'u5', name: 'ريم الشهري', avatar: 'https://picsum.photos/seed/reem77/100/100.jpg', status: 'offline', role: 'member', inVoice: false },
+            { id: 'u6', name: 'عبدالله القحطاني', avatar: 'https://picsum.photos/seed/abdullah99/100/100.jpg', status: 'online', role: 'member', inVoice: false },
+            { id: 'u7', name: 'لمى الحربي', avatar: 'https://picsum.photos/seed/lama44/100/100.jpg', status: 'idle', role: 'moderator', inVoice: false },
+            { id: 'u8', name: 'ماجد السبيعي', avatar: 'https://picsum.photos/seed/majed66/100/100.jpg', status: 'online', role: 'member', inVoice: true },
+        ];
+
+        let rooms = [
+            { id: 'r1', name: 'عام', type: 'text', category: 'نصية', unread: 3, description: 'النقاشات العامة حول أي موضوع' },
+            { id: 'r2', name: 'تقنية', type: 'text', category: 'نصية', unread: 0, description: 'آخر أخبار التقنية والبرمجة' },
+            { id: 'r3', name: 'تصميم', type: 'text', category: 'نصية', unread: 7, description: 'مجال التصميم والإبداع البصري' },
+            { id: 'r4', name: 'رياضة', type: 'text', category: 'نصية', unread: 0, description: 'النتائج والأخبار الرياضية' },
+            { id: 'r5', name: 'صوتي عام', type: 'voice', category: 'صوتية', unread: 0, description: 'قناة صوتية مفتوحة للجميع' },
+            { id: 'r6', name: 'صوتي ألعاب', type: 'voice', category: 'صوتية', unread: 0, description: 'تحدث أثناء اللعب مع الأصدقاء' },
+            { id: 'r7', name: 'صوتي دراسة', type: 'voice', category: 'صوتية', unread: 0, description: 'جلسات دراسة مشتركة بصمت' },
+        ];
+
+        let currentRoom = rooms[0];
+        let messages = {};
+        let msgIdCounter = 0;
+        let dmConversations = {};
+        let activeDM = null;
+        let isConnectedToVoice = false;
+        let voiceChannel = null;
+        let voiceTimer = null;
+        let voiceSeconds = 0;
+        let isRecording = false;
+        let recordingTimer = null;
+        let recordingSeconds = 0;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recognition = null;
+        let finalTranscript = '';
+
+        const initialMessages = {
+            'r1': [
+                { userId: 'u1', text: 'مرحبا بالجميع، كيف حالكم اليوم؟', time: '09:15', type: 'text' },
+                { userId: 'u2', text: 'أهلا سارة! الحمد لله بخير، والنتيجة حلوة؟', time: '09:16', type: 'text' },
+                { userId: 'u1', text: 'نعم تمام، هل انتهيتم من مشروع التصميم الجديد؟', time: '09:17', type: 'text' },
+                { userId: 'u3', text: 'أنهيت الجزء الأول، سأرسله لكم خلال ساعة', time: '09:20', type: 'text' },
+                { userId: 'u4', text: 'ممتاز نورة! أنا أنهيت واجهة المستخدم بالكامل', time: '09:22', type: 'text' },
+                { userId: 'u6', text: 'شغل رهيب، شفت النسخة التجريبية ورائعة جدا', time: '09:25', type: 'text' },
+                { userId: 'u2', text: 'رسالة صوتية', time: '09:28', type: 'voice', duration: '0:12' },
+                { userId: 'u1', text: 'تمام خالد، سنتواصل بعد الظهر لمناقشة التفاصيل المتبقية', time: '09:30', type: 'text' },
+            ],
+            'r2': [
+                { userId: 'u6', text: 'هل جربتم الذكاء الاصطناعي الجديد؟ أداؤه مذهل', time: '10:00', type: 'text' },
+                { userId: 'u4', text: 'نعم، لكن استهلاكه للموارد عالي جدا', time: '10:05', type: 'text' },
+                { userId: 'u2', text: 'أنصح باستخدام النسخة المحسّنة، أسرع بثلاث مرات', time: '10:08', type: 'text' },
+            ],
+            'r3': [
+                { userId: 'u3', text: 'شاركوني آرائكم في هذا اللوGC color palette', time: '11:00', type: 'text' },
+                { userId: 'u7', text: 'الألوان متناسقة جدا، لكن أقترح تعتيم الخلفية قليلا', time: '11:03', type: 'text' },
+            ]
+        };
+
+        const autoReplies = [
+            'رائع جدا! هذا مثير للاهتمام',
+            'أوافقك الرأي تماما',
+            'شكرا على المشاركة، فكرة ممتازة',
+            'هل يمكنك التوضيح أكثر؟',
+            'ممتاز، أتطلع لرؤية المزيد',
+            'هذا يذكرني بمشروع مشابه عملنا عليه سابقا',
+            'أتفق معك في هذه النقطة',
+            'بالتأكيد! دعني أفكر في الأمر',
+            'عمل رائع، استمر!',
+            'هذا التحديث جيد جدا',
+            'ما شاء الله، تقدم واضح',
+            'سأرسل لك التفاصيل لاحقا',
+        ];
+
+        const voiceReplies = [
+            'رسالة صوتية', 'ملاحظة صوتية سريعة'
+        ];
+
+        const emojis = [
+            '😀','😂','🤣','😍','🥰','😘','😊','😎','🤩','🥳',
+            '😏','🤔','🤗','😴','🥱','😱','😭','😤','🤯','🫡',
+            '👍','👎','👏','🙌','🤝','✌️','🤞','💪','🫶','👋',
+            '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💯','🔥',
+            '⭐','🌟','✨','💡','🎯','🚀','💻','🎨','🎮','📱',
+            '☕','🍕','🎂','🎶','🏆','💎','🌈','🌙','☀️','⚡'
+        ];
+
+        function init() {
+            loadData();
+            loadSettings();
+
+            if (Object.keys(messages).length === 0) {
+                Object.keys(initialMessages).forEach(roomId => {
+                    messages[roomId] = [...initialMessages[roomId]];
+                    messages[roomId].forEach(m => { if (!m._id) m._id = ++msgIdCounter; });
+                });
+            }
+
+            buildEmojiPicker();
+            buildRecWave();
+            buildVolumeMeter();
+            renderRooms();
+            renderMembers();
+            renderMessages();
+            initSpeechRecognition();
+            simulateLoading();
+            initParticles();
+            checkMobile();
+            window.addEventListener('resize', checkMobile);
+            window.addEventListener('beforeunload', () => { saveData(); saveSettings(); });
+
+            document.addEventListener('click', (e) => {
+                const picker = document.getElementById('emojiPicker');
+                if (picker.classList.contains('visible') && !e.target.closest('.emoji-picker') && !e.target.closest('[onclick="toggleEmojiPicker()"]')) {
+                    picker.classList.remove('visible');
+                }
+            });
+        }
+
+        function simulateLoading() {
+            const bar = document.getElementById('loadingBar');
+            const text = document.getElementById('loadingText');
+            const steps = [
+                { pct: 20, txt: 'جاري تحميل الواجهات...' },
+                { pct: 45, txt: 'تهيئة الاتصالات...' },
+                { pct: 70, txt: 'تحميل الرسائل...' },
+                { pct: 90, txt: 'تجهيز القنوات الصوتية...' },
+                { pct: 100, txt: 'مرحبا بك في NextosS!' },
+            ];
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i < steps.length) {
+                    bar.style.width = steps[i].pct + '%';
+                    text.textContent = steps[i].txt;
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').classList.add('hidden');
+                        document.getElementById('appContainer').style.opacity = '1';
+                        showToast('مرحبا بك في NextosS', 'success');
+                    }, 400);
+                }
+            }, 500);
+        }
+
+        function initParticles() {
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let mouse = { x: -1000, y: -1000 };
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            document.addEventListener('mousemove', (e) => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+
+            class Particle {
+                constructor() {
+                    this.reset();
+                }
+                reset() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 0.5;
+                    this.speedX = (Math.random() - 0.5) * 0.3;
+                    this.speedY = (Math.random() - 0.5) * 0.3;
+                    this.opacity = Math.random() * 0.4 + 0.1;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        const force = (150 - dist) / 150;
+                        this.x -= dx * force * 0.01;
+                        this.y -= dy * force * 0.01;
+                        this.opacity = Math.min(0.8, this.opacity + 0.02);
+                    } else {
+                        this.opacity += (0.2 - this.opacity) * 0.01;
+                    }
+
+                    if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                        this.reset();
+                    }
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, Math.max(0.1, this.size), 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 192, 1, ${this.opacity})`;
+                    ctx.fill();
+                }
+            }
+
+            const count = Math.min(80, Math.floor(canvas.width * canvas.height / 15000));
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle());
+            }
+
+            function drawLines() {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(255, 192, 1, ${0.06 * (1 - dist / 120)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => { p.update(); p.draw(); });
+                drawLines();
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderRooms() {
+            const list = document.getElementById('roomList');
+            const search = document.getElementById('roomSearch').value.trim().toLowerCase();
+            list.innerHTML = '';
+
+            const categories = [...new Set(rooms.map(r => r.category))];
+
+            categories.forEach(cat => {
+                const filtered = rooms.filter(r => r.category === cat && r.name.toLowerCase().includes(search));
+                if (filtered.length === 0) return;
+
+                const catDiv = document.createElement('div');
+                catDiv.className = 'room-category';
+                catDiv.textContent = cat;
+                list.appendChild(catDiv);
+
+                filtered.forEach(room => {
+                    const item = document.createElement('div');
+                    item.className = 'room-item' + (room.id === currentRoom.id ? ' active' : '');
+                    item.onclick = () => switchRoom(room);
+
+                    const iconBg = room.type === 'voice' ? 'rgba(255,192,1,0.1)' : 'rgba(62,198,255,0.1)';
+                    const iconColor = room.type === 'voice' ? 'var(--accent)' : 'var(--info)';
+                    const icon = room.type === 'voice' ? 'fa-volume-high' : 'fa-hashtag';
+
+                    let extra = '';
+                    if (room.type === 'voice') {
+                        const voiceUsers = users.filter(u => u.inVoice).length;
+                        if (voiceUsers > 0) {
+                            extra = `<div class="room-voice-indicator"></div>`;
+                        }
+                    }
+                    if (room.unread > 0) {
+                        extra = `<div class="room-unread">${room.unread}</div>`;
+                    }
+
+                    item.innerHTML = `
+                        <div class="room-icon" style="background:${iconBg};color:${iconColor};">
+                            <i class="fas ${icon}"></i>
+                        </div>
+                        <span class="room-name">${room.name}</span>
+                        ${extra}
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        function filterRooms() {
+            if (activeDM || document.getElementById('navDMs').classList.contains('active')) {
+                renderDMList();
+            } else {
+                renderRooms();
+            }
+        }
+
+        function switchRoom(room) {
+            currentRoom = room;
+            room.unread = 0;
+            renderRooms();
+            if (authToken && !messages[room.id]) fetchMessages(room.id);
+            renderMessages();
+            updateChatHeader();
+
+            if (room.type === 'voice' && !isConnectedToVoice) {
+                connectToVoice(room);
+            }
+
+            document.getElementById('roomsPanel').classList.remove('mobile-open');
+        }
+
+        function updateChatHeader() {
+            const icon = currentRoom.type === 'voice' ? 'fa-volume-high' : 'fa-hashtag';
+            document.getElementById('chatTitle').innerHTML = `<i class="fas ${icon}" style="color:var(--text-muted);font-size:14px;"></i><span>${currentRoom.name}</span>`;
+            document.getElementById('chatSubtitle').textContent = currentRoom.description;
+        }
+
+        function renderMembers() {
+            const list = document.getElementById('membersList');
+            list.innerHTML = '';
+            document.getElementById('memberCount').textContent = users.length + 1;
+
+            const onlineUsers = users.filter(u => u.status !== 'offline');
+            const offlineUsers = users.filter(u => u.status === 'offline');
+
+            if (onlineUsers.length > 0) {
+                const cat = document.createElement('div');
+                cat.className = 'member-category';
+                cat.textContent = `متصل — ${onlineUsers.length}`;
+                list.appendChild(cat);
+
+                onlineUsers.forEach(u => {
+                    list.appendChild(createMemberItem(u));
+                });
+            }
+
+            const meCat = document.createElement('div');
+            meCat.className = 'member-category';
+            meCat.textContent = 'أنت — 1';
+            list.insertBefore(meCat, list.firstChild);
+
+            const meItem = document.createElement('div');
+            meItem.className = 'member-item';
+            meItem.innerHTML = `
+                <div class="member-avatar">
+                    <img src="${currentUser.avatar}" alt="${currentUser.name}">
+                    <div class="avatar-status online" style="position:absolute;bottom:-1px;left:-1px;"></div>
+                </div>
+                <span class="member-name" style="color:var(--accent);">${currentUser.name}</span>
+                <span class="member-role-icon" style="color:var(--danger);"><i class="fas fa-crown"></i></span>
+            `;
+            list.insertBefore(meItem, meCat.nextSibling);
+
+            if (offlineUsers.length > 0) {
+                const offCat = document.createElement('div');
+                offCat.className = 'member-category';
+                offCat.textContent = `غير متصل — ${offlineUsers.length}`;
+                list.appendChild(offCat);
+
+                offlineUsers.forEach(u => {
+                    list.appendChild(createMemberItem(u));
+                });
+            }
+        }
+
+        function createMemberItem(u) {
+            const item = document.createElement('div');
+            item.className = 'member-item';
+            item.onclick = (e) => showMemberContext(e, u);
+
+            let voiceHTML = '';
+            if (u.inVoice) {
+                voiceHTML = `<div class="member-voice-active">
+                    <div class="voice-active-bar"></div>
+                    <div class="voice-active-bar"></div>
+                    <div class="voice-active-bar"></div>
+                    <div class="voice-active-bar"></div>
+                </div>`;
+            }
+
+            let roleIcon = '';
+            if (u.role === 'admin') roleIcon = `<span class="member-role-icon" style="color:var(--danger);"><i class="fas fa-crown"></i></span>`;
+            else if (u.role === 'moderator') roleIcon = `<span class="member-role-icon" style="color:var(--accent);"><i class="fas fa-shield-halved"></i></span>`;
+
+            const nameColor = u.status === 'idle' ? 'var(--text-secondary)' : 'var(--text-primary)';
+
+            item.innerHTML = `
+                <div class="member-avatar">
+                    <img src="${u.avatar}" alt="${u.name}">
+                    <div class="avatar-status ${u.status}"></div>
+                </div>
+                <span class="member-name" style="color:${nameColor};">${u.name}</span>
+                ${voiceHTML}
+                ${roleIcon}
+            `;
+            return item;
+        }
+
+        function showMemberContext(e, user) {
+            if (user.id === 'me') return;
+            e.stopPropagation();
+            ctxTargetUser = user;
+            const menu = document.getElementById('memberContextMenu');
+            document.getElementById('ctxAvatar').src = user.avatar;
+            document.getElementById('ctxName').textContent = user.name;
+            const statusText = { online: 'متصل', idle: 'غير نشط', offline: 'غير متصل' };
+            document.getElementById('ctxStatus').textContent = statusText[user.status] || user.status;
+            const x = Math.min(e.clientX, window.innerWidth - 220);
+            const y = Math.min(e.clientY, window.innerHeight - 200);
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            menu.classList.add('visible');
+        }
+
+        document.addEventListener('click', () => {
+            document.getElementById('memberContextMenu').classList.remove('visible');
+        });
+
+        function ctxSendMessage() {
+            document.getElementById('memberContextMenu').classList.remove('visible');
+            if (!ctxTargetUser) return;
+            switchToDM(ctxTargetUser);
+        }
+
+        function ctxAddFriend() {
+            document.getElementById('memberContextMenu').classList.remove('visible');
+            if (!ctxTargetUser) return;
+            showToast(`تم إرسال طلب صداقة إلى ${ctxTargetUser.name}`, 'success');
+        }
+
+        function ctxBlockUser() {
+            document.getElementById('memberContextMenu').classList.remove('visible');
+            if (!ctxTargetUser) return;
+            showToast(`تم حظر ${ctxTargetUser.name}`, 'warning');
+        }
+
+        function renderMessages() {
+            const area = document.getElementById('messagesArea');
+            area.innerHTML = '';
+
+            const roomMessages = messages[currentRoom.id] || [];
+
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'date-divider';
+            dateDiv.innerHTML = `<div class="date-divider-line"></div><div class="date-divider-text">اليوم</div><div class="date-divider-line"></div>`;
+            area.appendChild(dateDiv);
+
+            roomMessages.forEach(msg => {
+                area.appendChild(createMessageElement(msg));
+            });
+
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="message-avatar" style="width:40px;height:40px;">
+                    <img src="${users[0].avatar}" alt="" style="width:100%;height:100%;border-radius:12px;object-fit:cover;">
+                </div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+                <span class="typing-text">${users[0].name} يكتب...</span>
+            `;
+            area.appendChild(typingDiv);
+
+            scrollToBottom();
+        }
+
+        function createMessageElement(msg) {
+            const user = msg.userId === 'me' ? currentUser : users.find(u => u.id === msg.userId);
+            if (!user) return document.createDocumentFragment();
+            if (!msg.reactions) msg.reactions = [];
+            if (!msg._id) msg._id = ++msgIdCounter;
+
+            const group = document.createElement('div');
+            group.className = 'message-group';
+
+            let contentHTML = '';
+
+            let editedLabel = msg.edited ? ' <span style="font-size:11px;color:var(--text-muted);">(معدلة)</span>' : '';
+
+            if (msg.type === 'voice') {
+                const bars = [];
+                for (let i = 0; i < 30; i++) {
+                    const h = Math.random() * 20 + 4;
+                    bars.push(`<div class="voice-bar" style="height:${h}px;"></div>`);
+                }
+                contentHTML = `
+                    <div class="message-voice" onclick="playVoiceMessage(this)">
+                        <button class="voice-play-btn"><i class="fas fa-play"></i></button>
+                        <div class="voice-waveform">${bars.join('')}</div>
+                        <span class="voice-duration">${msg.duration || '0:05'}</span>
+                    </div>
+                `;
+            } else if (msg.type === 'image') {
+                contentHTML = `<div class="message-text"><img src="${msg.image}" class="msg-image" onclick="window.open(this.src)" alt="صورة"></div>`;
+            } else {
+                contentHTML = `<div class="message-text">${linkify(msg.text)}</div>`;
+            }
+
+            const authorColors = {
+                'u1': '#ff6b9d',
+                'u2': '#FFC001',
+                'u3': '#3ec6ff',
+                'u4': '#ffa502',
+                'u6': '#a78bfa',
+                'u7': '#f472b6',
+                'u8': '#34d399',
+                'me': '#FFC001'
+            };
+
+            const reactionsHTML = renderReactions(msg);
+
+            let actionsHTML = '';
+            if (msg.userId === 'me') {
+                actionsHTML = `
+                    <div class="message-actions">
+                        <button class="msg-action-btn" onclick="toggleReactionBar(this)" title="تفاعل"><i class="fas fa-face-smile"></i></button>
+                        <button class="msg-action-btn" onclick="startEditMessage(this, ${msg._id})" title="تعديل"><i class="fas fa-pen"></i></button>
+                        <button class="msg-action-btn danger" onclick="deleteMessage(${msg._id})" title="حذف"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+            } else {
+                actionsHTML = `
+                    <div class="message-actions">
+                        <button class="msg-action-btn" onclick="toggleReactionBar(this)" title="تفاعل"><i class="fas fa-face-smile"></i></button>
+                    </div>
+                `;
+            }
+
+            group.innerHTML = `
+                <div class="message-avatar">
+                    <img src="${user.avatar}" alt="${user.name}">
+                    <div class="avatar-status ${user.status}"></div>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        ${actionsHTML}
+                        <span class="message-author" style="color:${authorColors[msg.userId] || 'var(--text-primary)'}">${user.name}</span>
+                        <span class="message-time">${msg.time}${editedLabel}</span>
+                    </div>
+                    <div class="msg-body" id="msgBody-${msg._id}">
+                        ${contentHTML}
+                    </div>
+                    <div class="msg-reaction-bar" id="reactionBar-${msg._id}">
+                        <button class="reaction-emoji-btn" onclick="addReaction(${msg._id}, '👍')">👍</button>
+                        <button class="reaction-emoji-btn" onclick="addReaction(${msg._id}, '❤️')">❤️</button>
+                        <button class="reaction-emoji-btn" onclick="addReaction(${msg._id}, '😄')">😄</button>
+                        <button class="reaction-emoji-btn" onclick="addReaction(${msg._id}, '😮')">😮</button>
+                        <button class="reaction-emoji-btn" onclick="addReaction(${msg._id}, '😢')">😢</button>
+                        <button class="reaction-emoji-btn" onclick="addReaction(${msg._id}, '🔥')">🔥</button>
+                    </div>
+                    ${reactionsHTML}
+                </div>
+            `;
+
+            return group;
+        }
+
+        function renderReactions(msg) {
+            if (!msg.reactions || msg.reactions.length === 0) return '';
+            const grouped = {};
+            msg.reactions.forEach(r => {
+                if (!grouped[r.emoji]) grouped[r.emoji] = [];
+                grouped[r.emoji].push(r.userId);
+            });
+            let html = '<div class="msg-reactions">';
+            for (const [emoji, users] of Object.entries(grouped)) {
+                const isActive = users.includes('me');
+                html += `<div class="msg-reaction${isActive ? ' active' : ''}" onclick="addReaction(${msg._id}, '${emoji}')">
+                    ${emoji} <span class="count">${users.length}</span>
+                </div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function getMsgById(id) {
+            for (const key of Object.keys(messages)) {
+                const found = messages[key].find(m => m._id === id);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        function toggleReactionBar(btn) {
+            const content = btn.closest('.message-content');
+            const bar = content.querySelector('.msg-reaction-bar');
+            bar.classList.toggle('visible');
+        }
+
+        function addReaction(id, emoji) {
+            const msg = getMsgById(id);
+            if (!msg) return;
+            if (!msg.reactions) msg.reactions = [];
+            const existing = msg.reactions.findIndex(r => r.userId === 'me' && r.emoji === emoji);
+            if (existing !== -1) {
+                msg.reactions.splice(existing, 1);
+            } else {
+                msg.reactions.push({ userId: 'me', emoji });
+            }
+            renderMessages();
+            saveAfterChange();
+        }
+
+        function startEditMessage(btn, id) {
+            const msg = getMsgById(id);
+            if (!msg) return;
+            const content = btn.closest('.message-content');
+            const body = content.querySelector('.msg-body');
+            body.innerHTML = `
+                <input class="msg-edit-input" id="editInput-${id}" value="${msg.text}" maxlength="500">
+                <div class="msg-edit-actions">
+                    <button class="msg-edit-btn save" onclick="saveEditMessage(${id})">حفظ</button>
+                    <button class="msg-edit-btn cancel" onclick="cancelEditMessage(${id})">إلغاء</button>
+                </div>
+            `;
+            body.querySelector(`#editInput-${id}`).focus();
+        }
+
+        function saveEditMessage(id) {
+            const msg = getMsgById(id);
+            if (!msg) return;
+            const input = document.getElementById(`editInput-${id}`);
+            if (!input) return;
+            const newText = input.value.trim();
+            if (!newText || newText === msg.text) {
+                cancelEditMessage(id);
+                return;
+            }
+            msg.text = newText;
+            msg.edited = true;
+            renderMessages();
+            saveAfterChange();
+            showToast('تم تعديل الرسالة', 'success');
+        }
+
+        function cancelEditMessage(id) {
+            const msg = getMsgById(id);
+            if (!msg) return;
+            const body = document.getElementById(`msgBody-${id}`);
+            if (body) {
+                body.innerHTML = `<div class="message-text">${linkify(msg.text)}</div>`;
+            }
+        }
+
+        function deleteMessage(id) {
+            for (const key of Object.keys(messages)) {
+                const idx = messages[key].findIndex(m => m._id === id);
+                if (idx !== -1) {
+                    messages[key].splice(idx, 1);
+                    renderMessages();
+                    saveAfterChange();
+                    showToast('تم حذف الرسالة', 'info');
+                    return;
+                }
+            }
+        }
+
+        function linkify(text) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+        }
+
+        function uploadFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            event.target.value = '';
+
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+            if (socket && socket.connected && authToken) {
+                const formData = new FormData();
+                formData.append('file', file);
+                if (activeDM) {
+                    formData.append('dmTarget', activeDM.id);
+                } else if (currentRoom) {
+                    formData.append('roomId', currentRoom.id);
+                }
+
+                fetch(API_BASE + '/messages/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken },
+                    body: formData,
+                })
+                .then(res => res.json())
+                .then(msg => {
+                    if (msg._id) {
+                        const isDM = !!activeDM;
+                        const target = isDM ? dmConversations[activeDM.id] : messages[currentRoom.id];
+                        if (!target) return;
+                        target.push({
+                            userId: 'me',
+                            text: '',
+                            time: time,
+                            type: msg.type || 'image',
+                            image: msg.image || '',
+                            _id: msg._id,
+                        });
+                        if (isDM) { renderDMMessages(); renderDMList(); }
+                        else renderMessages();
+                    }
+                })
+                .catch(() => uploadLocal(file, time));
+            } else {
+                uploadLocal(file, time);
+            }
+        }
+
+        function uploadLocal(file, time) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+                if (activeDM) {
+                    if (!dmConversations[activeDM.id]) dmConversations[activeDM.id] = [];
+                    dmConversations[activeDM.id].push({
+                        userId: 'me', text: '', time: time, type: 'image', image: dataUrl, _id: ++msgIdCounter
+                    });
+                    renderDMMessages();
+                    renderDMList();
+                    saveAfterChange();
+                } else {
+                    if (!messages[currentRoom.id]) messages[currentRoom.id] = [];
+                    messages[currentRoom.id].push({
+                        userId: 'me', text: '', time: time, type: 'image', image: dataUrl, _id: ++msgIdCounter
+                    });
+                    renderMessages();
+                    saveAfterChange();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function playVoiceMessage(el) {
+            const btn = el.querySelector('.voice-play-btn i');
+            const bars = el.querySelectorAll('.voice-bar');
+            const isPlaying = btn.classList.contains('fa-pause');
+
+            if (isPlaying) {
+                btn.classList.replace('fa-pause', 'fa-play');
+                bars.forEach(b => b.classList.remove('active'));
+            } else {
+                btn.classList.replace('fa-play', 'fa-pause');
+                let idx = 0;
+                const interval = setInterval(() => {
+                    bars.forEach(b => b.classList.remove('active'));
+                    if (idx < bars.length) {
+                        for (let i = Math.max(0, idx - 3); i <= idx; i++) {
+                            bars[i].classList.add('active');
+                        }
+                        idx++;
+                    } else {
+                        clearInterval(interval);
+                        btn.classList.replace('fa-pause', 'fa-play');
+                        bars.forEach(b => b.classList.remove('active'));
+                    }
+                }, 100);
+            }
+        }
+
+        function scrollToBottom() {
+            const area = document.getElementById('messagesArea');
+            setTimeout(() => { area.scrollTop = area.scrollHeight; }, 50);
+        }
+
+        let searchResults = [];
+        let searchIndex = -1;
+
+        function openSearch() {
+            document.getElementById('searchOverlay').classList.add('visible');
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchInput').focus();
+            searchResults = [];
+            searchIndex = -1;
+            document.getElementById('searchCount').textContent = '';
+            document.getElementById('searchPrev').disabled = true;
+            document.getElementById('searchNext').disabled = true;
+        }
+
+        function closeSearch() {
+            document.getElementById('searchOverlay').classList.remove('visible');
+            clearHighlights();
+        }
+
+        function searchMessages(query) {
+            clearHighlights();
+            query = query.trim().toLowerCase();
+            if (!query) {
+                searchResults = [];
+                searchIndex = -1;
+                document.getElementById('searchCount').textContent = '';
+                document.getElementById('searchPrev').disabled = true;
+                document.getElementById('searchNext').disabled = true;
+                return;
+            }
+
+            const msgs = activeDM ? (dmConversations[activeDM.id] || []) : (messages[currentRoom.id] || []);
+            searchResults = [];
+            msgs.forEach((msg, idx) => {
+                if (msg.text && msg.text.toLowerCase().includes(query)) {
+                    searchResults.push(idx);
+                }
+            });
+            searchIndex = searchResults.length > 0 ? 0 : -1;
+            updateSearchUI();
+            highlightSearch(query);
+        }
+
+        function updateSearchUI() {
+            const count = document.getElementById('searchCount');
+            if (searchResults.length === 0) {
+                count.textContent = 'لا نتائج';
+                document.getElementById('searchPrev').disabled = true;
+                document.getElementById('searchNext').disabled = true;
+            } else {
+                count.textContent = `${searchIndex + 1} / ${searchResults.length}`;
+                document.getElementById('searchPrev').disabled = searchIndex <= 0;
+                document.getElementById('searchNext').disabled = searchIndex >= searchResults.length - 1;
+                scrollToMessage(searchResults[searchIndex]);
+            }
+        }
+
+        function searchPrev() {
+            if (searchIndex > 0) { searchIndex--; updateSearchUI(); }
+        }
+
+        function searchNext() {
+            if (searchIndex < searchResults.length - 1) { searchIndex++; updateSearchUI(); }
+        }
+
+        function scrollToMessage(idx) {
+            const area = document.getElementById('messagesArea');
+            const msgs = area.querySelectorAll('.message-group');
+            if (msgs[idx]) {
+                msgs[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function highlightSearch(query) {
+            if (!query) return;
+            const area = document.getElementById('messagesArea');
+            const texts = area.querySelectorAll('.message-text');
+            texts.forEach(el => {
+                const html = el.innerHTML;
+                const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                if (re.test(html)) {
+                    el.innerHTML = html.replace(re, '<span class="search-highlight">$1</span>');
+                }
+            });
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.search-highlight').forEach(el => {
+                el.replaceWith(el.textContent);
+            });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (activeDM) {
+                if (socket && socket.connected && authToken) {
+                    socket.emit('message:send', {
+                        dmTarget: activeDM.id,
+                        text: text,
+                        type: 'text',
+                    });
+                }
+                if (sendDMMessage(text)) {
+                    input.value = '';
+                    autoResize(input);
+                    updateSendBtn();
+                    renderDMList();
+                }
+                return;
+            }
+
+            if (socket && socket.connected && currentRoom) {
+                socket.emit('message:send', {
+                    roomId: currentRoom.id,
+                    text: text,
+                    type: 'text',
+                });
+                const msg = {
+                    userId: 'me',
+                    text: text,
+                    time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
+                    type: 'text',
+                    _id: 'pending_' + Date.now(),
+                };
+                if (!messages[currentRoom.id]) messages[currentRoom.id] = [];
+                messages[currentRoom.id].push(msg);
+                input.value = '';
+                autoResize(input);
+                updateSendBtn();
+                renderMessages();
+                return;
+            }
+
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+            if (!messages[currentRoom.id]) messages[currentRoom.id] = [];
+            messages[currentRoom.id].push({
+                userId: 'me',
+                text: text,
+                time: time,
+                type: 'text',
+                _id: ++msgIdCounter
+            });
+
+            input.value = '';
+            autoResize(input);
+            updateSendBtn();
+            renderMessages();
+            saveAfterChange();
+            simulateReply();
+        }
+
+        function handleInputKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        function updateSendBtn() {
+            const btn = document.getElementById('sendBtn');
+            const input = document.getElementById('messageInput');
+            if (input.value.trim().length > 0) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+
+        function simulateReply() {
+            const typingEl = document.getElementById('typingIndicator');
+            const randomUser = users.filter(u => u.status !== 'offline')[Math.floor(Math.random() * users.filter(u => u.status !== 'offline').length)];
+
+            if (!randomUser) return;
+
+            typingEl.querySelector('.typing-text').textContent = `${randomUser.name} يكتب...`;
+            typingEl.querySelector('.message-avatar img').src = randomUser.avatar;
+
+            setTimeout(() => {
+                typingEl.classList.add('visible');
+                scrollToBottom();
+            }, 800);
+
+            const delay = 2000 + Math.random() * 3000;
+            setTimeout(() => {
+                typingEl.classList.remove('visible');
+
+                const now = new Date();
+                const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                const isVoice = Math.random() < 0.15;
+
+                if (!messages[currentRoom.id]) messages[currentRoom.id] = [];
+
+                if (isVoice) {
+                    messages[currentRoom.id].push({
+                        userId: randomUser.id,
+                        text: voiceReplies[Math.floor(Math.random() * voiceReplies.length)],
+                        time: time,
+                        type: 'voice',
+                        duration: `0:${Math.floor(Math.random() * 20 + 3)}`,
+                        _id: ++msgIdCounter
+                    });
+                } else {
+                    messages[currentRoom.id].push({
+                        userId: randomUser.id,
+                        text: autoReplies[Math.floor(Math.random() * autoReplies.length)],
+                        time: time,
+                        type: 'text',
+                        _id: ++msgIdCounter
+                    });
+                }
+
+                renderMessages();
+                saveAfterChange();
+            }, delay);
+        }
+
+        function buildEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            const grid = document.createElement('div');
+            grid.className = 'emoji-grid';
+            emojis.forEach(em => {
+                const btn = document.createElement('button');
+                btn.className = 'emoji-btn';
+                btn.textContent = em;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const input = document.getElementById('messageInput');
+                    input.value += em;
+                    input.focus();
+                    updateSendBtn();
+                    picker.classList.remove('visible');
+                };
+                grid.appendChild(btn);
+            });
+            picker.appendChild(grid);
+        }
+
+        function toggleEmojiPicker() {
+            document.getElementById('emojiPicker').classList.toggle('visible');
+        }
+
+        function buildRecWave() {
+            const wave = document.getElementById('recWave');
+            for (let i = 0; i < 40; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'rec-wave-bar';
+                bar.style.height = '4px';
+                wave.appendChild(bar);
+            }
+        }
+
+        async function startRecording() {
+            if (isRecording) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordingSeconds = 0;
+
+                document.getElementById('voiceRecordBtn').classList.add('recording');
+                document.getElementById('recordingBar').classList.add('visible');
+                updateRecTimer();
+
+                animateRecWave(stream);
+
+                if (recognition) {
+                    finalTranscript = '';
+                    recognition.start();
+                }
+
+                recordingTimer = setInterval(() => {
+                    recordingSeconds++;
+                    updateRecTimer();
+                }, 1000);
+
+            } catch (err) {
+                showToast('لا يمكن الوصول إلى الميكروفون', 'error');
+            }
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+            isRecording = false;
+
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(t => t.stop());
+            }
+
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+
+            clearInterval(recordingTimer);
+            document.getElementById('voiceRecordBtn').classList.remove('recording');
+        }
+
+        function cancelRecording() {
+            stopRecording();
+            document.getElementById('recordingBar').classList.remove('visible');
+            audioChunks = [];
+            finalTranscript = '';
+            resetRecWave();
+        }
+
+        function sendRecording() {
+            stopRecording();
+            document.getElementById('recordingBar').classList.remove('visible');
+            resetRecWave();
+
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            const mins = Math.floor(recordingSeconds / 60);
+            const secs = recordingSeconds % 60;
+            const duration = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            if (!messages[currentRoom.id]) messages[currentRoom.id] = [];
+
+            if (finalTranscript.trim()) {
+                messages[currentRoom.id].push({
+                    userId: 'me',
+                    text: finalTranscript.trim(),
+                    time: time,
+                    type: 'text'
+                });
+            } else {
+                messages[currentRoom.id].push({
+                    userId: 'me',
+                    text: 'رسالة صوتية',
+                    time: time,
+                    type: 'voice',
+                    duration: duration
+                });
+            }
+
+            finalTranscript = '';
+            audioChunks = [];
+            renderMessages();
+            simulateReply();
+        }
+
+        function updateRecTimer() {
+            const mins = Math.floor(recordingSeconds / 60);
+            const secs = recordingSeconds % 60;
+            document.getElementById('recTimer').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function animateRecWave(stream) {
+            if (!isRecording) return;
+            const bars = document.querySelectorAll('#recWave .rec-wave-bar');
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioCtx.createAnalyser();
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+            analyser.fftSize = 64;
+            const data = new Uint8Array(analyser.frequencyBinCount);
+
+            function draw() {
+                if (!isRecording) {
+                    audioCtx.close();
+                    return;
+                }
+                analyser.getByteFrequencyData(data);
+                bars.forEach((bar, i) => {
+                    const idx = Math.floor(i * data.length / bars.length);
+                    const val = data[idx] || 0;
+                    bar.style.height = Math.max(3, val / 255 * 28) + 'px';
+                });
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        function resetRecWave() {
+            document.querySelectorAll('#recWave .rec-wave-bar').forEach(bar => {
+                bar.style.height = '4px';
+            });
+        }
+
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ar-SA';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+            };
+
+            recognition.onerror = () => {};
+            recognition.onend = () => {
+                if (isRecording) {
+                    try { recognition.start(); } catch(e) {}
+                }
+            };
+        }
+
+        function buildVolumeMeter() {
+            const meter = document.getElementById('volumeMeter');
+            for (let i = 0; i < 5; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'vol-bar';
+                bar.style.height = '4px';
+                meter.appendChild(bar);
+            }
+        }
+
+        function connectToVoice(room) {
+            isConnectedToVoice = true;
+            voiceChannel = room;
+            voiceSeconds = 0;
+
+            document.getElementById('voiceChannelName').textContent = room.name;
+            document.getElementById('voiceChannelBar').classList.add('visible');
+
+            voiceTimer = setInterval(() => {
+                voiceSeconds++;
+                const mins = Math.floor(voiceSeconds / 60);
+                const secs = voiceSeconds % 60;
+                const voiceUsers = users.filter(u => u.inVoice).length + 1;
+                document.getElementById('voiceChannelInfo').textContent = `متصل — ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')} — ${voiceUsers} مشارك`;
+            }, 1000);
+
+            animateVolumeMeter();
+
+            showToast(`تم الاتصال بـ ${room.name}`, 'success');
+        }
+
+        function disconnectVoice() {
+            isConnectedToVoice = false;
+            voiceChannel = null;
+            clearInterval(voiceTimer);
+            document.getElementById('voiceChannelBar').classList.remove('visible');
+            showToast('تم قطع الاتصال الصوتي', 'info');
+        }
+
+        function animateVolumeMeter() {
+            if (!isConnectedToVoice) return;
+            const bars = document.querySelectorAll('#volumeMeter .vol-bar');
+            bars.forEach(bar => {
+                bar.style.height = (Math.random() * 16 + 4) + 'px';
+            });
+            setTimeout(animateVolumeMeter, 150);
+        }
+
+        function openCreateRoomModal() {
+            document.getElementById('createRoomModal').classList.add('visible');
+            document.getElementById('newRoomName').value = '';
+            document.getElementById('newRoomName').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('createRoomModal').classList.remove('visible');
+        }
+
+        function createRoom() {
+            const name = document.getElementById('newRoomName').value.trim();
+            const type = document.getElementById('newRoomType').value;
+
+            if (!name) {
+                showToast('يرجى إدخال اسم الغرفة', 'error');
+                return;
+            }
+
+            const newRoom = {
+                id: 'r' + Date.now(),
+                name: name,
+                type: type,
+                category: type === 'voice' ? 'صوتية' : 'نصية',
+                unread: 0,
+                description: `غرفة ${type === 'voice' ? 'صوتية' : 'نصية'} — ${name}`
+            };
+
+            rooms.push(newRoom);
+            closeModal();
+            renderRooms();
+            switchRoom(newRoom);
+            showToast(`تم إنشاء غرفة ${name} بنجاح`, 'success');
+        }
+
+        document.getElementById('createRoomModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+        function navigateTo(section) {
+            document.querySelectorAll('.sidebar-icon').forEach(el => el.classList.remove('active'));
+            if (section === 'chat') {
+                document.getElementById('navChat').classList.add('active');
+                if (activeDM) closeDM();
+            } else if (section === 'voice') {
+                document.getElementById('navVoice').classList.add('active');
+                const voiceRoom = rooms.find(r => r.type === 'voice');
+                if (voiceRoom) switchRoom(voiceRoom);
+                if (activeDM) closeDM();
+            } else if (section === 'dms') {
+                document.getElementById('navDMs').classList.add('active');
+                openDMs();
+            }
+        }
+
+        function toggleRooms() {
+            const panel = document.getElementById('roomsPanel');
+            if (window.innerWidth <= 768) {
+                panel.classList.toggle('mobile-open');
+            } else {
+                panel.classList.toggle('collapsed');
+            }
+        }
+
+        function toggleMembers() {
+            document.getElementById('membersPanel').classList.toggle('collapsed');
+        }
+
+        let themeIndex = 0;
+        const themes = [
+            { accent: '#FFC001', name: 'ذهبي' },
+            { accent: '#F3393A', name: 'أحمر' },
+            { accent: '#FF991D', name: 'برتقالي' },
+            { accent: '#F8EA49', name: 'أصفر' },
+            { accent: '#54092A', name: 'نبيذي' },
+        ];
+
+        function toggleTheme() {
+            themeIndex = (themeIndex + 1) % themes.length;
+            const theme = themes[themeIndex];
+            document.documentElement.style.setProperty('--accent', theme.accent);
+
+            const r = parseInt(theme.accent.slice(1, 3), 16);
+            const g = parseInt(theme.accent.slice(3, 5), 16);
+            const b = parseInt(theme.accent.slice(5, 7), 16);
+            document.documentElement.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.3)`);
+            document.documentElement.style.setProperty('--accent-glow-strong', `rgba(${r},${g},${b},0.6)`);
+            document.documentElement.style.setProperty('--border-accent', `rgba(${r},${g},${b},0.2)`);
+
+            document.getElementById('currentThemeName').textContent = theme.name;
+            saveSettings();
+            showToast(`المظهر ${theme.name}`, 'info');
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+
+            let icon = 'fa-circle-info';
+            let color = 'var(--info)';
+            if (type === 'success') { icon = 'fa-circle-check'; color = 'var(--accent)'; }
+            if (type === 'error') { icon = 'fa-circle-xmark'; color = 'var(--danger)'; }
+            if (type === 'warning') { icon = 'fa-triangle-exclamation'; color = 'var(--warning)'; }
+
+            toast.innerHTML = `<i class="fas ${icon}" style="color:${color};font-size:16px;"></i><span>${msg}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('removing');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function checkMobile() {
+            const btn = document.getElementById('mobileMenuBtn');
+            if (window.innerWidth <= 768) {
+                btn.style.display = 'flex';
+            } else {
+                btn.style.display = 'none';
+                document.getElementById('roomsPanel').classList.remove('mobile-open');
+            }
+        }
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('visible');
+            document.getElementById('settingsName').value = currentUser.name;
+            document.getElementById('settingsDisplayName').textContent = currentUser.name;
+            updateSettingsUI();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('visible');
+        }
+
+        function openDMs() {
+            closeDM();
+            document.querySelectorAll('.sidebar-icon').forEach(el => el.classList.remove('active'));
+            document.getElementById('navDMs').classList.add('active');
+            document.getElementById('roomList').style.display = 'none';
+            document.getElementById('dmList').style.display = 'block';
+            document.getElementById('roomSearch').placeholder = 'بحث في المحادثات...';
+            renderDMList();
+            updateChatForDM();
+        }
+
+        function renderDMList() {
+            const list = document.getElementById('dmList');
+            const search = document.getElementById('roomSearch').value.trim().toLowerCase();
+            list.innerHTML = '';
+            const userIds = Object.keys(dmConversations).filter(uid => {
+                const user = users.find(u => u.id === uid);
+                return user && user.name.toLowerCase().includes(search);
+            });
+            if (userIds.length === 0) {
+                list.innerHTML = `
+                    <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">
+                        <i class="fas fa-envelope-open-text" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.4;"></i>
+                        لا توجد محادثات خاصة بعد<br>
+                        <span style="font-size:12px;">اضغط على أي عضو واختر "إرسال رسالة"</span>
+                    </div>
+                `;
+                return;
+            }
+            userIds.forEach(uid => {
+                const user = users.find(u => u.id === uid);
+                if (!user) return;
+                const msgs = dmConversations[uid];
+                const last = msgs[msgs.length - 1];
+                const item = document.createElement('div');
+                item.className = 'room-item' + (activeDM && activeDM.id === uid ? ' active' : '');
+                item.onclick = () => switchToDM(user);
+                item.innerHTML = `
+                    <div class="room-icon" style="background:rgba(255,192,1,0.1);color:var(--accent);">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span class="room-name">${user.name}</span>
+                    <span style="font-size:11px;color:var(--text-muted);">${last ? last.time : ''}</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function switchToDM(user) {
+            activeDM = user;
+            document.querySelectorAll('.sidebar-icon').forEach(el => el.classList.remove('active'));
+            document.getElementById('navDMs').classList.add('active');
+            document.getElementById('roomList').style.display = 'none';
+            document.getElementById('dmList').style.display = 'block';
+            document.getElementById('roomSearch').placeholder = 'بحث في المحادثات...';
+            renderDMList();
+            updateChatForDM();
+            renderDMMessages();
+        }
+
+        function closeDM() {
+            activeDM = null;
+            document.getElementById('roomList').style.display = 'block';
+            document.getElementById('dmList').style.display = 'none';
+            document.getElementById('roomSearch').placeholder = 'بحث في الغرف...';
+            updateChatHeader();
+            renderMessages();
+        }
+
+        function updateChatForDM() {
+            if (!activeDM) return;
+            document.getElementById('chatTitle').innerHTML = `
+                <i class="fas fa-envelope" style="color:var(--accent);font-size:14px;"></i>
+                <span>${activeDM.name}</span>
+            `;
+            const statusText = { online: 'متصل', idle: 'غير نشط', offline: 'غير متصل' };
+            document.getElementById('chatSubtitle').textContent = statusText[activeDM.status] || '';
+        }
+
+        function renderDMMessages() {
+            const area = document.getElementById('messagesArea');
+            area.innerHTML = '';
+            if (!activeDM || !dmConversations[activeDM.id]) {
+                area.innerHTML = `
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:8px;">
+                        <i class="fas fa-comment-dots" style="font-size:40px;opacity:0.3;"></i>
+                        <span style="font-size:14px;">بداية محادثة مع ${activeDM ? activeDM.name : '...'}</span>
+                        <span style="font-size:12px;">أرسل أول رسالة الآن</span>
+                    </div>
+                `;
+                return;
+            }
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'date-divider';
+            dateDiv.innerHTML = `<div class="date-divider-line"></div><div class="date-divider-text">اليوم</div><div class="date-divider-line"></div>`;
+            area.appendChild(dateDiv);
+            dmConversations[activeDM.id].forEach(msg => {
+                area.appendChild(createMessageElement(msg));
+            });
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'dmTypingIndicator';
+            typingDiv.innerHTML = `
+                <div class="message-avatar" style="width:40px;height:40px;">
+                    <img src="${activeDM.avatar}" alt="" style="width:100%;height:100%;border-radius:12px;object-fit:cover;">
+                </div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+                <span class="typing-text">${activeDM.name} يكتب...</span>
+            `;
+            area.appendChild(typingDiv);
+            scrollToBottom();
+        }
+
+        function sendDMMessage(text) {
+            if (!activeDM) return false;
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+            const msgId = ++msgIdCounter;
+            if (!dmConversations[activeDM.id]) dmConversations[activeDM.id] = [];
+            dmConversations[activeDM.id].push({
+                userId: 'me', text, time, type: 'text', _id: msgId
+            });
+
+            if (socket && socket.connected && authToken) {
+                socket.emit('message:send', {
+                    dmTarget: activeDM.id, text, type: 'text',
+                });
+            } else {
+                simulateDMReply();
+            }
+
+            renderDMMessages();
+            saveAfterChange();
+            return true;
+        }
+
+        function simulateDMReply() {
+            if (!activeDM) return;
+
+            if (socket && socket.connected && authToken) {
+                const typingEl = document.getElementById('dmTypingIndicator');
+                if (typingEl) typingEl.classList.add('visible');
+
+                setTimeout(() => {
+                    if (!activeDM) return;
+                    const el = document.getElementById('dmTypingIndicator');
+                    if (el) el.classList.remove('visible');
+                    const now = new Date();
+                    const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+                    fetch(API_BASE + '/auth/guest', { method: 'POST' })
+                        .then(r => r.json())
+                        .then(replyUser => {
+                            const replyTexts = [
+                                'تمام، اتفقنا 👍',
+                                'فكرة رائعة! 😊',
+                                'إن شاء الله 🙏',
+                                'ممتاز، استمر 💪',
+                                'أهلاً وسهلاً 🤝',
+                                'نعم صحيح ✓',
+                                'شكراً لك 🌟',
+                            ];
+                            const reply = {
+                                userId: activeDM.id,
+                                text: replyTexts[Math.floor(Math.random() * replyTexts.length)],
+                                time: time,
+                                type: 'text',
+                                _id: ++msgIdCounter
+                            };
+                            if (!dmConversations[activeDM.id]) dmConversations[activeDM.id] = [];
+                            dmConversations[activeDM.id].push(reply);
+                            renderDMMessages();
+                            renderDMList();
+                            saveAfterChange();
+                            if (document.getElementById('notifSound')?.classList.contains('on')) {
+                                playNotificationSound();
+                            }
+                        }).catch(() => {});
+                }, 1500 + Math.random() * 2000);
+                return;
+            }
+
+            const typingEl = document.getElementById('dmTypingIndicator');
+            if (typingEl) typingEl.classList.add('visible');
+
+            if (document.getElementById('notifSound')?.classList.contains('on')) {
+                playNotificationSound();
+            }
+
+            const delay = 1500 + Math.random() * 2000;
+            setTimeout(() => {
+                if (!activeDM) return;
+                const el = document.getElementById('dmTypingIndicator');
+                if (el) el.classList.remove('visible');
+                const now = new Date();
+                const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                if (!dmConversations[activeDM.id]) dmConversations[activeDM.id] = [];
+                dmConversations[activeDM.id].push({
+                    userId: activeDM.id,
+                    text: autoReplies[Math.floor(Math.random() * autoReplies.length)],
+                    time: time,
+                    type: 'text',
+                    _id: ++msgIdCounter
+                });
+                renderDMMessages();
+                renderDMList();
+                saveAfterChange();
+            }, delay);
+        }
+        function switchSettingsTab(tab) {
+            settingsTab = tab;
+            document.querySelectorAll('.settings-tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.settings-section').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.settings-tab[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById(`section-${tab}`).classList.add('active');
+        }
+
+        function updateSettingsUI() {
+            document.getElementById('settingsDisplayName').textContent = currentUser.name;
+            document.getElementById('sidebarAvatar').src = currentUser.avatar;
+            document.getElementById('settingsAvatar').src = currentUser.avatar;
+        }
+
+        function updateAvatar(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            event.target.value = '';
+
+            if (authToken) {
+                const formData = new FormData();
+                formData.append('file', file);
+                fetch(API_BASE + '/messages/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken },
+                    body: formData,
+                }).then(r => r.json()).then(msg => {
+                    if (msg && msg.image) {
+                        currentUser.avatar = window.location.origin + msg.image;
+                        fetch(API_BASE + '/users/profile', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                            body: JSON.stringify({ avatar: currentUser.avatar }),
+                        }).catch(() => {});
+                        updateSettingsUI();
+                        saveAfterChange();
+                        showToast('تم تغيير الصورة الشخصية', 'success');
+                    }
+                }).catch(() => uploadAvatarLocal(file));
+            } else {
+                uploadAvatarLocal(file);
+            }
+        }
+
+        function uploadAvatarLocal(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentUser.avatar = e.target.result;
+                updateSettingsUI();
+                saveAfterChange();
+                showToast('تم تغيير الصورة', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setStatus(status, btn) {
+            currentUser.status = status;
+            document.querySelectorAll('.settings-status-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            renderMembers();
+            saveAfterChange();
+        }
+
+        function saveProfile() {
+            const name = document.getElementById('settingsName').value.trim();
+            if (name) {
+                currentUser.name = name;
+                document.getElementById('settingsDisplayName').textContent = name;
+                updateSettingsUI();
+                renderMembers();
+            }
+            saveAfterChange();
+            showToast('تم حفظ الملف الشخصي', 'success');
+        }
+
+        function saveAccount() {
+            const email = document.getElementById('settingsEmail').value.trim();
+            const pass = document.getElementById('settingsPassword').value;
+            const passConfirm = document.getElementById('settingsPasswordConfirm').value;
+
+            if (pass && pass !== passConfirm) {
+                showToast('كلمة المرور غير متطابقة', 'error');
+                return;
+            }
+            saveAfterChange();
+            showToast('تم حفظ بيانات الحساب', 'success');
+        }
+
+        function toggleSwitch(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('on');
+        }
+
+        function changeFontSize(size) {
+            const sizes = { small: '13px', medium: '14px', large: '16px' };
+            document.getElementById('messageInput').style.fontSize = sizes[size];
+            document.querySelectorAll('.message-text').forEach(el => el.style.fontSize = sizes[size]);
+            saveSettings();
+            showToast(`تم تغيير حجم الخط إلى ${size === 'small' ? 'صغير' : size === 'medium' ? 'وسط' : 'كبير'}`, 'info');
+        }
+
+        function changeLanguage(lang) {
+            if (lang === 'en') {
+                showToast('English language support coming soon', 'info');
+            } else {
+                showToast('تم اختيار اللغة العربية', 'info');
+            }
+        }
+
+        function playNotificationSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.2);
+            } catch(e) {}
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('nextoss_messages', JSON.stringify(messages));
+                localStorage.setItem('nextoss_dms', JSON.stringify(dmConversations));
+                localStorage.setItem('nextoss_user', JSON.stringify({ name: currentUser.name, avatar: currentUser.avatar, status: currentUser.status, bio: document.getElementById('settingsBio')?.value || '' }));
+            } catch(e) {}
+        }
+
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('nextoss_messages');
+                if (saved) messages = JSON.parse(saved);
+                const dms = localStorage.getItem('nextoss_dms');
+                if (dms) dmConversations = JSON.parse(dms);
+                const user = localStorage.getItem('nextoss_user');
+                if (user) {
+                    const u = JSON.parse(user);
+                    if (u.name) currentUser.name = u.name;
+                    if (u.avatar) currentUser.avatar = u.avatar;
+                    if (u.status) currentUser.status = u.status;
+                }
+            } catch(e) {}
+        }
+
+        function saveSettings() {
+            try {
+                localStorage.setItem('nextoss_theme', themeIndex.toString());
+                localStorage.setItem('nextoss_font', document.getElementById('settingsFontSize')?.value || 'medium');
+            } catch(e) {}
+        }
+
+        function loadSettings() {
+            try {
+                const theme = localStorage.getItem('nextoss_theme');
+                if (theme) {
+                    themeIndex = parseInt(theme);
+                    const t = themes[themeIndex];
+                    if (t) {
+                        document.documentElement.style.setProperty('--accent', t.accent);
+                        const r = parseInt(t.accent.slice(1, 3), 16);
+                        const g = parseInt(t.accent.slice(3, 5), 16);
+                        const b = parseInt(t.accent.slice(5, 7), 16);
+                        document.documentElement.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.3)`);
+                        document.documentElement.style.setProperty('--accent-glow-strong', `rgba(${r},${g},${b},0.6)`);
+                        document.documentElement.style.setProperty('--border-accent', `rgba(${r},${g},${b},0.2)`);
+                    }
+                }
+            } catch(e) {}
+        }
+
+        function saveAfterChange() {
+            saveData();
+            saveSettings();
+        }
+
+        document.getElementById('settingsModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeSettings();
+        });
+
+        // ========== Auth Functions ==========
+        let authToken = localStorage.getItem('nextoss_token');
+        let authUser = null;
+
+        function switchLoginTab(tab) {
+            document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.login-tab')[tab === 'login' ? 0 : tab === 'register' ? 1 : 2].classList.add('active');
+            document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errEl = document.getElementById('loginError');
+            try {
+                const res = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+                const data = await res.json();
+                if (!res.ok) { errEl.textContent = data.message || 'فشل تسجيل الدخول'; return; }
+                authToken = data.token;
+                authUser = data.user;
+                localStorage.setItem('nextoss_token', authToken);
+                localStorage.setItem('nextoss_auth_user', JSON.stringify(authUser));
+                hideLogin();
+                initApp();
+            } catch (e) { errEl.textContent = 'تعذر الاتصال بالخادم'; }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const errEl = document.getElementById('registerError');
+            try {
+                const res = await fetch(API_BASE + '/auth/register', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email: email || undefined, password }),
+                });
+                const data = await res.json();
+                if (!res.ok) { errEl.textContent = data.message || 'فشل إنشاء الحساب'; return; }
+                authToken = data.token;
+                authUser = data.user;
+                localStorage.setItem('nextoss_token', authToken);
+                localStorage.setItem('nextoss_auth_user', JSON.stringify(authUser));
+                hideLogin();
+                initApp();
+            } catch (e) { errEl.textContent = 'تعذر الاتصال بالخادم'; }
+        }
+
+        async function guestLogin() {
+            try {
+                const res = await fetch(API_BASE + '/auth/guest', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) return;
+                authToken = data.token;
+                authUser = data.user;
+                localStorage.setItem('nextoss_token', authToken);
+                localStorage.setItem('nextoss_auth_user', JSON.stringify(authUser));
+                hideLogin();
+                initApp();
+            } catch(e) { document.getElementById('loginError').textContent = 'تعذر الاتصال بالخادم'; }
+        }
+
+        function hideLogin() {
+            document.getElementById('loginOverlay').classList.add('hidden');
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('nextoss_token');
+            localStorage.removeItem('nextoss_auth_user');
+            authToken = null;
+            authUser = null;
+            if (socket) socket.disconnect();
+            socket = null;
+            document.getElementById('appContainer').style.opacity = '0';
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regPassword').value = '';
+            showToast('تم تسجيل الخروج', 'info');
+        }
+
+        // ========== Backend Connection ==========
+        const API_BASE = window.location.origin + '/api';
+        let backendConnected = false;
+        let socket = null;
+
+        async function initBackend() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                if (res.ok) {
+                    backendConnected = true;
+                    console.log('[Backend] Connected');
+                    showToast('تم الاتصال بالخادم', 'success');
+                    initSocket();
+                    return true;
+                }
+            } catch (e) {
+                console.log('[Backend] Not available, running in local mode');
+            }
+            return false;
+        }
+
+        function initSocket() {
+            if (typeof io === 'undefined') return;
+            try {
+                socket = io(window.location.origin, {
+                    auth: { token: localStorage.getItem('nextoss_token') || '' },
+                });
+
+                socket.on('connect', () => {
+                    console.log('[Socket] Connected:', socket.id);
+                });
+
+                socket.on('message:new', (msg) => {
+                    if (msg.room) {
+                        if (!messages[msg.room]) messages[msg.room] = [];
+                        const exists = messages[msg.room].some(m => m._id === msg._id);
+                        if (!exists) {
+                            messages[msg.room].push({
+                                userId: msg.sender?._id || msg.sender || 'me',
+                                text: msg.text || '',
+                                time: msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '00:00',
+                                type: msg.type || 'text',
+                                _id: msg._id,
+                            });
+                        }
+                        if (currentRoom && currentRoom.id === msg.room) renderMessages();
+                    }
+                    if (msg.dmTarget) {
+                        const targetId = msg.dmTarget === authUser?._id ? msg.sender?._id || msg.sender : msg.dmTarget;
+                        if (!dmConversations[targetId]) dmConversations[targetId] = [];
+                        const exists = dmConversations[targetId].some(m => m._id === msg._id);
+                        if (!exists) {
+                            dmConversations[targetId].push({
+                                userId: msg.sender?._id || msg.sender,
+                                text: msg.text || '',
+                                time: msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '00:00',
+                                type: msg.type || 'text',
+                                _id: msg._id,
+                            });
+                        }
+                        if (activeDM && activeDM.id === targetId) renderDMMessages();
+                        renderDMList();
+                    }
+                });
+
+                socket.on('user:status', (data) => {
+                    users.forEach(u => {
+                        if (u.id === data.userId) u.status = data.status;
+                    });
+                    if (document.getElementById('membersPanel').classList.contains('visible')) {
+                        renderMembers();
+                    }
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('[Socket] Disconnected');
+                    backendConnected = false;
+                });
+            } catch (e) {
+                console.warn('[Socket] Failed to init:', e.message);
+            }
+        }
+
+        async function fetchRooms() {
+            try {
+                const res = await fetch(API_BASE + '/rooms', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                if (!res.ok) return;
+                const apiRooms = await res.json();
+                if (apiRooms.length === 0) return;
+                const validTypes = ['text', 'voice'];
+                rooms = apiRooms.map(r => ({
+                    id: r._id,
+                    name: r.nameAr || r.name || r.name,
+                    type: validTypes.includes(r.type) ? r.type : 'text',
+                    category: r.type === 'voice' ? 'صوتية' : 'نصية',
+                    unread: 0,
+                    description: r.descriptionAr || r.description || '',
+                    color: r.color || '#FFC001',
+                    members: r.members || [],
+                }));
+                currentRoom = rooms[0];
+            } catch(e) { console.log('[API] Rooms fetch failed:', e.message); }
+        }
+
+        async function fetchUsers() {
+            try {
+                const userIds = [...new Set(rooms.flatMap(r => r.members || []))];
+                const apiUsers = [];
+                for (const uid of userIds) {
+                    try {
+                        const res = await fetch(API_BASE + '/users/' + uid, {
+                            headers: { 'Authorization': 'Bearer ' + authToken }
+                        });
+                        if (res.ok) apiUsers.push(await res.json());
+                    } catch(e) {}
+                }
+                const names = ['أحمد', 'محمد', 'سارة', 'نورة', 'خالد', 'فهد', 'لمى', 'ماجد'];
+                users.splice(0, users.length);
+                if (apiUsers.length > 0) {
+                    apiUsers.forEach((u, i) => {
+                        if (u._id !== authUser?._id) {
+                            users.push({
+                                id: u._id,
+                                name: u.username || names[i % names.length],
+                                avatar: u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (u.username || i),
+                                status: u.status || 'offline',
+                                role: u.role || 'member',
+                                inVoice: false,
+                            });
+                        }
+                    });
+                }
+            } catch(e) { console.log('[API] Users fetch failed:', e.message); }
+        }
+
+        async function fetchMessages(roomId) {
+            try {
+                const res = await fetch(API_BASE + '/messages?roomId=' + roomId + '&limit=100', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.messages) return;
+                messages[roomId] = data.messages.map(m => ({
+                    userId: m.sender?._id || m.sender || 'me',
+                    text: m.text || '',
+                    time: m.createdAt ? new Date(m.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '00:00',
+                    type: m.type || 'text',
+                    _id: m._id,
+                    edited: m.edited,
+                    reactions: m.reactions || [],
+                    image: m.image || '',
+                    duration: m.duration || '',
+                }));
+                msgIdCounter = Math.max(msgIdCounter, ...data.messages.map(m => m._id ? (typeof m._id === 'string' ? parseInt(m._id.slice(-6), 36) || 0 : m._id) : 0));
+            } catch(e) { console.log('[API] Messages fetch failed:', e.message); }
+        }
+
+        async function fetchAndSyncData() {
+            await fetchRooms();
+            await fetchUsers();
+            if (currentRoom) await fetchMessages(currentRoom.id);
+            renderRooms();
+            renderMembers();
+            renderMessages();
+            if (authUser) {
+                currentUser.name = authUser.username || authUser.name || currentUser.name;
+                currentUser.avatar = authUser.avatar || currentUser.avatar;
+                document.getElementById('sidebarAvatar').src = currentUser.avatar;
+                document.getElementById('settingsName').value = currentUser.name;
+                document.getElementById('settingsDisplayName').textContent = currentUser.name;
+            }
+        }
+
+        function initApp() {
+            init();
+            initBackend();
+            if (authToken && authUser) {
+                setTimeout(fetchAndSyncData, 1500);
+            }
+        }
+
+        if (authToken) {
+            document.getElementById('loginOverlay').classList.add('hidden');
+            try {
+                const saved = localStorage.getItem('nextoss_auth_user');
+                if (saved) authUser = JSON.parse(saved);
+            } catch(e) {}
+            setTimeout(initApp, 100);
+        } else {
+            document.getElementById('loadingScreen').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
